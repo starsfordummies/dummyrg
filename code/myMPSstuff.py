@@ -114,12 +114,15 @@ class myMPS:
 
 
 
-def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-8):
+def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-10):
 
-    """ Brings input myMPS object to canonical form, returns 'form'
+    """ Brings input myMPS object to canonical form, returns 'form'.
+    According to the mode, we either 
+    'L' -> perform a left sweep (and drop final piece so the norm should be 1)
+    'LR' -> perform a right sweep after the left one, and truncate the SV below epsTrunc
+    'C' -> perform a LR sweep and then bring to Gamma-Lambda-Gamma-Lambda canonical form
     """
 
-    logging.info("Performing a Left Sweep")
 
     LL = inpMPS.LL
     DD = inpMPS.DD
@@ -130,10 +133,14 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-8):
 
     MPS = inpMPS.MPS
 
-    Alist = [1]*LL  # This will hold our A matrices for the LeftCanonical form
 
     Slist = [1]*(LL-1)
   
+
+    logging.info("Performing a Left Sweep")
+    
+    Alist = [1]*LL  # This will hold our A matrices for the LeftCanonical form
+
 
     # First site:
 
@@ -237,7 +244,7 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-8):
     RIGHT SWEEP 
     """
 
-    if(mode == 'LR' or mode == 'LRC'):
+    if(mode == 'LR' or mode == 'C'):
         # Perform a right sweep as well 
 
         # We will truncate here as well if given a epsTrunc > 0 at input
@@ -364,7 +371,7 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-8):
         inpMPS.form = 'R'
 
 
-    if(mode == 'LRC'):  #Build Gamma-Lambda canon form as well
+    if(mode == 'C'):  #Build Gamma-Lambda canon form as well
 
         logging.warning("Building Gamma-Lambda canonical form")
         Glist = [1]*LL
@@ -384,5 +391,35 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-8):
         inpMPS.MPS = Glist
         inpMPS.SVinv = Sinvlist
 
+        inpMPS.form = 'C'
+
     #print(f"Slist = {Slist}")
-    return Slist
+
+    return inpMPS.form
+
+def expValOneSite(iMPS: object, oper: np.array, site: int):
+
+    if(iMPS.form != 'LR'):
+        bringCan(iMPS,mode='LR',epsTrunc=1e-12)
+
+    conTen = [np.diag(iMPS.SV[1]),np.diag(iMPS.SV[1]),iMPS.MPS[2],np.conj(iMPS.MPS[2]),oper]
+    conIdx = [[1,2],[1,3],[3,4,5],[2,6,5],[4,6]]
+
+    return np.real_if_close(ncon(conTen,conIdx))
+
+
+def checkIdMatrix(ainp: np.array, epstol = 1e-14):
+    """Checks if an array is an identity matrix (within machine precision)"""
+
+    a = np.array(ainp)
+    if a.shape[0] != a.shape[1]:
+        print(f"Not even square: {a.shape}")
+        return False
+    else:
+        size = a.shape[0]
+        if np.all(np.abs(a - np.eye(size)) < epstol):
+            print(f"identity, size = {size}")
+            return True
+        else:
+            print(f"Square but not id, difference = {np.abs(a - np.eye(size))}")
+            return False
