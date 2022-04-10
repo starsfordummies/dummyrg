@@ -24,28 +24,27 @@ def randMPS(LL: int, chi: int=5, d: int=2):
     return myMPS
 
 
+
+
 class myMPS:
 
-    def __init__(self, inputMPS: list=randMPS(7), offIndices: int=5):
-        """
-        self.MPS = inputMPS  
-        self.indices = indices
-        self.d = d
-        self.LL = LL     
-        self.chis = mChi
-        self.SV = mSV  
-        self.SVinv = mSV  
-        self.form = 'x'
-        """
+    """ My own MPS implementation - Contains the following elements:
+    LL(length), DD (physical dim), chis(bond dims), 
+    indices (for contraction),
+    SV (singular values (arrays)), SVinv(inverse of SVs),
+    form (can be L, R, C or 'x')
+    """
 
+    def __init__(self, inputMPS: list=randMPS(7), offIndices: int=5):
+      
         LL = len(inputMPS)
 
-        d = np.shape(inputMPS[1])[1]  # not the most elegant way to extract it but eh..
+        DD = np.shape(inputMPS[1])[1]  # not the most elegant way to extract it but eh..
 
         mChi = [ np.shape(mm)[0] for mm in inputMPS[1:] ]  # Should be LL-1 long
         mSV = [1] * (LL-1) # Empty for now 
 
-        print(f"MPS with length {LL} and physical d={d}")
+        print(f"MPS with length {LL} and physical d={DD}")
         print(f"chi {mChi}")
 
 
@@ -53,7 +52,7 @@ class myMPS:
         # physical go from 1 to L   (ncon doesn't like 0 as idx..)
         # virtual from L+1 up to 2L 
 
-        # Maybe we should use a DICT for the indices? 
+        # Should we use a DICT for the indices? 
         indices = [{ 
             'vL': 0,
             'ph': 1,
@@ -68,10 +67,11 @@ class myMPS:
         indices.append({ 'vL': (offIndices+1)*LL - 1, 'ph': LL, 'vR': 0 })
 
         self.LL = LL  
+        self.DD = DD  
 
         self.MPS = inputMPS  
         self.indices = indices
-        self.d = d   
+  
         self.chis = mChi
         self.SV = mSV  
         self.SVinv = mSV  
@@ -89,7 +89,8 @@ class myMPS:
                 idx["ph"] = openIndices[ii]
             self.indices = indices  # Is this even necessary ? 
 
-    def indexList(self):
+    def getIndices(self):
+        """ Returns a list of lists with the indices for contracting the TN with ncon """
         iL = []
         for el in self.indices:
 
@@ -114,14 +115,14 @@ class myMPS:
 
 
 def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-8):
-    """ 
-    Brings input myMPS object to canonical form, returns SVs
+
+    """ Brings input myMPS object to canonical form, returns 'form'
     """
 
     logging.info("Performing a Left Sweep")
 
     LL = inpMPS.LL
-    d = inpMPS.d
+    DD = inpMPS.DD
 
     chiIn = inpMPS.chis
 
@@ -129,7 +130,7 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-8):
 
     MPS = inpMPS.MPS
 
-    Alist = [1]*LL  # This will hold our A matrices 
+    Alist = [1]*LL  # This will hold our A matrices for the LeftCanonical form
 
     Slist = [1]*(LL-1)
   
@@ -138,7 +139,6 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-8):
 
     U, S, Vdag = LA.svd(MPS[0],full_matrices=0)
 
-    #print(MPS[0], U, S, Vdag)
 
     logging.info("First SVD:")
     logging.info(f"{np.shape(MPS[0])} = {np.shape(U)} . {np.shape(S)} . {np.shape(Vdag)}")
@@ -162,7 +162,7 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-8):
         Mtilde = ncon([np.diag(S), Vdag, MPS[jj]], [[-1,1],[1,2],[2,-2,-3]])  # TODO: can NCON the three 
 
         logging.info(f"Mtilde[{pjj}] = {np.shape(Mtilde)}  - Reshape it as chiA[{pjj-1}]*d, chiIn[{pjj}")
-        Mtr = np.reshape(Mtilde, (chiA[jj-1]*d, chiIn[jj]))
+        Mtr = np.reshape(Mtilde, (chiA[jj-1]*DD, chiIn[jj]))
 
         U, S, Vdag = LA.svd(Mtr,full_matrices=0)  
         
@@ -173,7 +173,7 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-8):
 
         # Reshape U
 
-        U = np.reshape(U,(chiA[jj-1],d,chiA[jj]))
+        U = np.reshape(U,(chiA[jj-1],DD,chiA[jj]))
 
         Slist[jj] = S 
         Alist[jj] = U
@@ -188,7 +188,7 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-8):
     logging.info(f"Mtilde = {np.shape(Mtilde)}")
 
     # We should still reshape here!
-    Mtr = np.reshape(Mtilde, (chiA[LL-2]*d, 1))
+    Mtr = np.reshape(Mtilde, (chiA[LL-2]*DD, 1))
 
     U, S, Vdag = LA.svd(Mtr,full_matrices=0)  
       
@@ -199,7 +199,7 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-8):
 
     logging.info(f"From {np.shape(U)} ")
 
-    U = np.reshape(U,(chiA[LL-2],d))
+    U = np.reshape(U,(chiA[LL-2],DD))
     logging.info(f"to {np.shape(U)} ")
 
     Alist[LL-1] = U
@@ -286,7 +286,7 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-8):
             Mtilde = ncon([Alist[idx], U, np.diag(S)], [[-1,-2,1],[1,2],[2,-3]])  
 
             logging.info(f"Mtilde[{pjj}] = {np.shape(Mtilde)}  - Reshape it as chiIn_{pjj-1} , chiB_{pjj}*d")
-            Mtr = np.reshape(Mtilde, (chiA[idx-1],chiB[idx]*d, ))
+            Mtr = np.reshape(Mtilde, (chiA[idx-1],chiB[idx]*DD, ))
 
             U, S, Vdag = LA.svd(Mtr,full_matrices=0)  
             
@@ -310,7 +310,7 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-8):
 
             # Reshape Vdag
 
-            Vdag = np.reshape(Vdag,(chiB[idx-1],d,chiB[idx]))
+            Vdag = np.reshape(Vdag,(chiB[idx-1],DD,chiB[idx]))
 
             Blist[idx] = Vdag
 
@@ -324,7 +324,7 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-8):
         logging.info(f"Mtilde = {np.shape(Mtilde)}")
 
         # We should still reshape here!
-        Mtr = np.reshape(Mtilde, (1,chiB[0]*d))
+        Mtr = np.reshape(Mtilde, (1,chiB[0]*DD))
 
         U, S, Vdag = LA.svd(Mtr,full_matrices=0)  
         
@@ -335,7 +335,7 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-8):
 
         logging.info(f"From {np.shape(Vdag)} ")
 
-        Vdag = np.reshape(Vdag,(d,chiB[0]))
+        Vdag = np.reshape(Vdag,(DD,chiB[0]))
         logging.info(f"to {np.shape(Vdag)} ")
 
         Blist[0] = Vdag
