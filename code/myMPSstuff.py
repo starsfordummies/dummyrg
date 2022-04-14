@@ -41,7 +41,8 @@ class myMPS:
 
         DD = np.shape(inputMPS[1])[1]  # not the most elegant way to extract it but eh..
 
-        mChi = [ np.shape(mm)[0] for mm in inputMPS[1:] ]  # Should be LL-1 long
+        mChi = [ np.shape(mm)[0] for mm in inputMPS ]
+        #inputMPS[1:] ]  # Should be LL-1 long
         mSV = [1] * (LL-1) # Empty for now 
 
         print(f"MPS with length {LL} and physical d={DD}")
@@ -129,7 +130,7 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-10):
 
     chiIn = inpMPS.chis
 
-    chiA = [1]*(LL-1)
+    chiA = [1]*LL
 
     MPS = inpMPS.MPS
 
@@ -141,6 +142,7 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-10):
     
     Alist = [1]*LL  # This will hold our A matrices for the LeftCanonical form
 
+    chiA[0] = 1
 
     # First site:
 
@@ -152,7 +154,7 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-10):
     logging.info(f"SV = {S}")
     logging.info(f"chi_1 (nonzero SVs) = {np.size(S)}")
 
-    chiA[0] = np.size(S)
+    chiA[1] = np.size(S)
     Slist[0] = S  
 
     Alist[0] = U
@@ -168,19 +170,19 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-10):
 
         Mtilde = ncon([np.diag(S), Vdag, MPS[jj]], [[-1,1],[1,2],[2,-2,-3]])  # TODO: can NCON the three 
 
-        logging.info(f"Mtilde[{pjj}] = {np.shape(Mtilde)}  - Reshape it as chiA[{pjj-1}]*d, chiIn[{pjj}")
-        Mtr = np.reshape(Mtilde, (chiA[jj-1]*DD, chiIn[jj]))
+        logging.info(f"Mtilde[{pjj}] = {np.shape(Mtilde)}  - Reshape it as chiA[{pjj}]*d, chiIn[{pjj}")
+        Mtr = np.reshape(Mtilde, (chiA[jj]*DD, chiIn[jj]))
 
         U, S, Vdag = LA.svd(Mtr,full_matrices=0)  
         
         logging.info( f"SVD: {np.shape(Mtr)} = {np.shape(U)} . {np.shape(S)} . {np.shape(Vdag)}")
-        logging.info(f"chi_{pjj} (nonzero SVs) = {np.size(S)}")
+        logging.info(f"chi_{pjj+1} (nonzero SVs) = {np.size(S)}")
 
-        chiA[jj] = np.size(S)
+        chiA[jj+1] = np.size(S)
 
         # Reshape U
 
-        U = np.reshape(U,(chiA[jj-1],DD,chiA[jj]))
+        U = np.reshape(U,(chiA[jj],DD,chiA[jj+1]))
 
         Slist[jj] = S 
         Alist[jj] = U
@@ -195,7 +197,7 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-10):
     logging.info(f"Mtilde = {np.shape(Mtilde)}")
 
     # We should still reshape here!
-    Mtr = np.reshape(Mtilde, (chiA[LL-2]*DD, 1))
+    Mtr = np.reshape(Mtilde, (chiA[LL-1]*DD, 1))
 
     U, S, Vdag = LA.svd(Mtr,full_matrices=0)  
       
@@ -206,7 +208,7 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-10):
 
     logging.info(f"From {np.shape(U)} ")
 
-    U = np.reshape(U,(chiA[LL-2],DD))
+    U = np.reshape(U,(chiA[LL-1],DD))
     logging.info(f"to {np.shape(U)} ")
 
     Alist[LL-1] = U
@@ -253,7 +255,7 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-10):
 
         Blist = [1]*LL  # This will hold our B matrices 
 
-        chiB = [1]*(LL-1)
+        chiB = [1]*LL
     
         # First site:
 
@@ -262,12 +264,12 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-10):
         logging.info("First SVD:")
         logging.info(f"{np.shape(Alist[LL-1])} = {np.shape(U)} . {np.shape(S)} . {np.shape(Vdag)}")
         logging.info(f"SV = {S}")
-        logging.info(f"chi_{LL-1} (nonzero SVs) = {np.size(S)}")
+        logging.info(f"chi_{LL} (nonzero SVs) = {np.size(S)}")
 
         S = S[ (S >= epsTrunc)]
         sizeTruncS = np.size(S)
 
-        logging.info(f"chi_{LL-1} (truncated SVs) = {sizeTruncS}")
+        logging.info(f"chi_{LL} (truncated SVs) = {sizeTruncS}")
 
         # If we truncated the SVs, we should truncate accordingly the cols of U
         # and the rows of Vdag
@@ -275,7 +277,7 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-10):
         U = U[:,:sizeTruncS]
         Vdag = Vdag[:sizeTruncS,:]
 
-        chiB[LL-2] = sizeTruncS
+        chiB[LL-1] = sizeTruncS
         Slist[LL-2] = S  
 
         Blist[LL-1] = Vdag
@@ -292,18 +294,18 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-10):
 
             Mtilde = ncon([Alist[idx], U, np.diag(S)], [[-1,-2,1],[1,2],[2,-3]])  
 
-            logging.info(f"Mtilde[{pjj}] = {np.shape(Mtilde)}  - Reshape it as chiIn_{pjj-1} , chiB_{pjj}*d")
-            Mtr = np.reshape(Mtilde, (chiA[idx-1],chiB[idx]*DD, ))
+            logging.info(f"Mtilde[{pjj}] = {np.shape(Mtilde)}  - Reshape it as chiIn_{pjj} , chiB_{pjj+1}*d")
+            Mtr = np.reshape(Mtilde, (chiA[idx],chiB[idx+1]*DD, ))
 
             U, S, Vdag = LA.svd(Mtr,full_matrices=0)  
             
             logging.info( f"SVD: {np.shape(Mtr)} = {np.shape(U)} . {np.shape(S)} . {np.shape(Vdag)}")
-            logging.info(f"chi_{pjj-1} (nonzero SVs) = {np.size(S)}")
+            logging.info(f"chi_{pjj} (nonzero SVs) = {np.size(S)}")
 
             S = S[ (S >= epsTrunc)]
             sizeTruncS = np.size(S)
 
-            logging.info(f"chi_{pjj-1} (truncated SVs) = {sizeTruncS}")
+            logging.info(f"chi_{pjj} (truncated SVs) = {sizeTruncS}")
 
             # If we truncated the SVs, we should truncate accordingly the cols of U
             # and the rows of Vdag
@@ -312,12 +314,12 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-10):
             Vdag = Vdag[:sizeTruncS,:]
 
 
-            chiB[idx-1] = sizeTruncS
+            chiB[idx] = sizeTruncS
             Slist[idx-1] = S 
 
             # Reshape Vdag
 
-            Vdag = np.reshape(Vdag,(chiB[idx-1],DD,chiB[idx]))
+            Vdag = np.reshape(Vdag,(chiB[idx],DD,chiB[idx+1]))
 
             Blist[idx] = Vdag
 
@@ -331,7 +333,7 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-10):
         logging.info(f"Mtilde = {np.shape(Mtilde)}")
 
         # We should still reshape here!
-        Mtr = np.reshape(Mtilde, (1,chiB[0]*DD))
+        Mtr = np.reshape(Mtilde, (1,chiB[1]*DD))
 
         U, S, Vdag = LA.svd(Mtr,full_matrices=0)  
         
@@ -342,7 +344,7 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-10):
 
         logging.info(f"From {np.shape(Vdag)} ")
 
-        Vdag = np.reshape(Vdag,(DD,chiB[0]))
+        Vdag = np.reshape(Vdag,(DD,chiB[1]))
         logging.info(f"to {np.shape(Vdag)} ")
 
         Blist[0] = Vdag
@@ -396,6 +398,8 @@ def bringCan(inpMPS: object, mode: str='LR', epsTrunc: float=1e-10):
     #print(f"Slist = {Slist}")
 
     return inpMPS.form
+
+
 
 def expValOneSite(iMPS: object, oper: np.array, site: int):
 
