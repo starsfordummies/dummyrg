@@ -6,7 +6,7 @@ from tenpy.networks.site import SpinHalfSite
 import numpy as np
 
 class TFISDModel(CouplingMPOModel):
-    r"""Self-dual Ising model on a general lattice.
+    r"""Self-dual extended Ising model on a general lattice.
 
     The Hamiltonian reads:
 
@@ -31,10 +31,15 @@ class TFISDModel(CouplingMPOModel):
 
         conserve : None | 'parity'
             What should be conserved. See :class:`~tenpy.networks.Site.SpinHalfSite`.
-        J, g : float | array
+        p, lambda : float | array
             Coupling as defined for the Hamiltonian above.
 
     """
+
+    # Put those here 
+    default_lattice = Chain
+    force_default_lattice = True
+
     def init_sites(self, model_params):
         conserve = model_params.get('conserve', 'parity')
         assert conserve != 'Sz'
@@ -53,9 +58,7 @@ class TFISDModel(CouplingMPOModel):
             self.add_onsite(-lam, u, 'Sigmaz')
         for u1, u2, dx in self.lat.pairs['nearest_neighbors']:
             self.add_coupling(-1., u1, 'Sigmax', u2, 'Sigmax', dx)
-
         # Then the two new pieces ~p 
-        for u1, u2, dx in self.lat.pairs['nearest_neighbors']:
             self.add_coupling(p*lam, u1, 'Sigmaz', u2, 'Sigmaz', dx)
         
         for u1, u2, dx in self.lat.pairs['next_nearest_neighbors']:
@@ -67,11 +70,12 @@ class TFISDModel(CouplingMPOModel):
 
 # We can on the other hand build the MPO version 
 # TODO: check if I'm not missing something here 
-class TFISDChain(TFISDModel, MPOModel):
-    """The :class:`TFIModel` on a Chain, suitable for TEBD.
 
-    See the :class:`TFIModel` for the documentation of parameters.
-    """
-    default_lattice = Chain
-    force_default_lattice = True
+# class TFISDChain(TFISDModel, MPOModel):
+#     """The :class:`TFIModel` on a Chain, suitable for TEBD.
+
+#     See the :class:`TFIModel` for the documentation of parameters.
+#     """
+#     default_lattice = Chain
+#     force_default_lattice = True
 
