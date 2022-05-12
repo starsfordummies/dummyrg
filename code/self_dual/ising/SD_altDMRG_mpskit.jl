@@ -1,4 +1,4 @@
-# Last modified: 2022/05/11 15:59:18
+# Last modified: 2022/05/12 14:32:36
 
 # Code for the time evolution of a **finite** Ising chain 
 
@@ -73,7 +73,7 @@ ham = isingSD_ham(J = 1., lambda = 1. , p = 0.3 );
 #quenching_ham = nonsym_ising_ham(lambda = 1.);
 
 len = 30;
-startBond = 50;
+startBond = 100;
 
 init = FiniteMPS(rand,ComplexF64,len, ℂ^2,ℂ^startBond);
 
@@ -82,9 +82,9 @@ bonds = [ size(mm.data)[1] for mm in init.CR[1:end] ]
 println("Starting bond dims $(bonds)")
 println("First, find ground state")
 
-(ψ0n,_) = find_groundstate(init,ham,DMRG2((trscheme=truncbelow(1e-10))));
+#(ψ0n,_) = find_groundstate(init,ham,DMRG2((trscheme=truncbelow(1e-10))));
 #(ψ0n,_) = find_groundstate(ψ0,ham,DMRG());
-#(ψ0n,_) = find_groundstate(init,ham,DMRG());
+(ψ0n,_) = find_groundstate(init,ham,DMRG());
 
 bonds = [ size(mm.data)[1] for mm in ψ0n.CR[1:end-1] ] 
 println("Found GS with bond dimension $(bonds)")
@@ -142,3 +142,13 @@ println(fit.param)
 
 fittedmodel(x)  = fit.param[1]/6*log(2*len/π * sin(π*x/len)) + fit.param[2]
 plot!(fittedmodel, 1,29)
+
+# Plot S vs log(sin.. )
+# If we are critical, according to CFT this should be a 
+# straight line, whose slope is the central charge
+# TODO: check factors 1/3, 1/6.. 
+xdatatemp = Array(range(1,len//2))
+xdata2 = [ log(len/π * sin(π*ell/len)) for len in xdatatemp]
+ydata2 = ents[1:len//2]
+
+plot(xdata2,ydata2)
