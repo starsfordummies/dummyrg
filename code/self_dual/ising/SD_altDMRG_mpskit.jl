@@ -1,6 +1,11 @@
-# Last modified: 2022/05/12 14:32:36
+# Last modified: 2022/05/12 17:58:56
 
 # Code for the time evolution of a **finite** Ising chain 
+
+if gethostname() == "majorana"
+    println("On majorana, using MKL")
+    using MKL
+end
 
 using MPSKit,MPSKitModels,TensorKit,LinearAlgebra
 using Plots: plot, plot!
