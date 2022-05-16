@@ -59,10 +59,10 @@ class TFISDModel(CouplingMPOModel):
         for u1, u2, dx in self.lat.pairs['nearest_neighbors']:
             self.add_coupling(-1., u1, 'Sigmax', u2, 'Sigmax', dx)
         # Then the two new pieces ~p 
-            self.add_coupling(p*lam, u1, 'Sigmaz', u2, 'Sigmaz', dx)
+            self.add_coupling(-p*lam, u1, 'Sigmaz', u2, 'Sigmaz', dx)
         
         for u1, u2, dx in self.lat.pairs['next_nearest_neighbors']:
-            self.add_coupling(p, u1, 'Sigmax', u2, 'Sigmax', dx)
+            self.add_coupling(-p, u1, 'Sigmax', u2, 'Sigmax', dx)
         # done
 
 # We can't build trivially the Hamiltonian as NearestNeighbor with the next-nearest interaction
