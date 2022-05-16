@@ -1,4 +1,4 @@
-# Last modified: 2022/05/12 17:58:56
+# Last modified: 2022/05/16 19:34:42
 
 # Code for the time evolution of a **finite** Ising chain 
 
@@ -51,8 +51,8 @@ function isingSD_ham(; J = 1 ,spin = 1//2,lambda = 1, p=0)
 
     hamdat = Array{Union{Missing,typeof(sx)},3}(missing,1,5,5)
     hamdat[1,1,1] = id;
-    hamdat[1,1,2] = p*lambda*sx;
-    hamdat[1,1,3] = p*sz;
+    hamdat[1,1,2] = -p*lambda*sx;
+    hamdat[1,1,3] = -p*sz;
     hamdat[1,1,4] = -J*sz;
     hamdat[1,1,5] = -lambda*sx;
     hamdat[1,2,5] = sx;

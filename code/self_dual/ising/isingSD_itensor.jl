@@ -1,4 +1,4 @@
-# Last modified: 2022/05/12 18:39:51
+# Last modified: 2022/05/16 19:33:57
 
 # Self-dual Ising DMRG code using ITensor library 
 
@@ -20,13 +20,13 @@ function myBuildHam(sites ; JJ = 1. , lambda = 1. , pp = 0.0)
     println("Building Hamiltonian for J=$(JJ), λ=$(lambda), p=$(pp)")
     ampo = OpSum()
     for j=1:N-2
-        ampo += pp*4, "Sz",j,"Sz",j+2
+        ampo += -pp*4, "Sz",j,"Sz",j+2
     end
     for j=1:N-1
     #ampo += 0.5,"S+",j,"S-",j+1
     #ampo += 0.5,"S-",j,"S+",j+1
     ampo += -4*JJ, "Sz",j,"Sz",j+1
-    ampo += 4*lambda*pp, "Sx",j,"Sx",j+1
+    ampo += -4*lambda*pp, "Sx",j,"Sx",j+1
     end
     for j = 1:N
         ampo += -2*lambda, "Sx", j 
