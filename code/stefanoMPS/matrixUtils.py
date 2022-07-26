@@ -15,3 +15,8 @@ def checkIdMatrix(ainp: np.array, epstol = 1e-14):
         else:
             print(f"Square but not id, difference = {np.abs(a - np.eye(size))}")
             return False
+
+
+# TODO:
+def myReshape(idx: dict, tensor: np.array):
+    np.reshape(array)

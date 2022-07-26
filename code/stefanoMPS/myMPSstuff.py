@@ -1,18 +1,22 @@
-# Last modified: 2022/07/12 17:36:55
+# Last modified: 2022/07/21 15:25:18
+
+from __future__ import annotations
 
 import numpy as np
 from numpy import linalg as LA
 from tensornetwork import ncon
 import logging
 
-# TODO: should I switch to Luca's convention for MPS indices, 
+from myMPOstuff import myMPO
+
+
+# I switched to theconvention
 # v_L , v_R , phys 
-# for the peace of mind? 
 
 
-def randMPS(LL: int=10, chi: int=5, d: int=2):
+def randMPS(LL: int=10, chi: int=5, d: int=2) -> list:
 
-    """ MPS Builder function - OBC for now 
+    """ Random MPS matrix list Builder function - OBC for now 
     Returns a list of length LL of random tensors with bond dimension chi 
     and physical dimension d 
     """
@@ -20,16 +24,33 @@ def randMPS(LL: int=10, chi: int=5, d: int=2):
     logging.info(f"Building random MPS with length {LL}, chi = {chi} and physical d={d}")
 
     # Build the first element of the MPS A_1 (actually 0th elem of the list)
-    myMPS = [ np.random.rand(1,d,chi) + 1j*np.random.rand(1,d,chi) ]
+    outMPS = [ np.random.rand(1,chi,d) + 1j*np.random.rand(1,chi,d) ]
 
     #Build all the others, A_2 to A_(N-1)
     for ii in range(2,LL):  # 2 to N-1, so actually building N-2 elements
-         myMPS.append(np.random.rand(chi,d,chi) + 1j*np.random.rand(chi,d,chi) )
+         outMPS.append(np.random.rand(chi,chi,d) + 1j*np.random.rand(chi,chi,d) )
  
     # Build the Nth element (actually element N-1 of the list)
-    myMPS.append( np.random.rand(chi,d,1) + 1j*np.random.rand(chi,d,1))
+    # bbbb 
+    # bbbb 
+    outMPS.append( np.random.rand(chi,1,d) + 1j*np.random.rand(chi,1,d))
 
-    return myMPS
+    return outMPS
+
+
+def plusState(LL: int=10) -> list:
+
+    """ Returns a product "plus" state
+    """
+
+    chi =1 
+    d = 2
+    logging.info(f"Building product |+> state of length {LL} (physical d={d})")
+
+    # Build the first element of the MPS A_1 (actually 0th elem of the list)
+    outMPS = [np.array([ 1./np.sqrt(d), 1./np.sqrt(d) ]).reshape(1,1,2)]*LL
+
+    return outMPS
 
 
 
@@ -41,10 +62,6 @@ class myMPS:
     DD (physical dim), 
     chis(bond dims) [LL + 1 long, first and last are trivial bonds], 
   
-    indices (for contraction),
-    offIndices is the offset factor which we use to label the virtual indices to be contracted, 
-    we take it to be >> 1 so we don't get mixed indices labels 
-    
     MPS (the matrices)
     Alist (the left-canonical matrices)
     Blist (the right-canonical matrices)
@@ -57,49 +74,37 @@ class myMPS:
     
     """
 
+    # Fancy stuff for performance saving
+    __slots__ = ['LL','DD','MPS','chis','SV','SVinv','form','idx','normalized']
 
-    def __init__(self, inputMPS: list=randMPS(LL=7, chi=20, d=2), offIndices: int=5, can: bool=True):
+    def __init__(self, inputMPS: list=randMPS(LL=7, chi=20, d=2), can: bool=True):
       
         LL = len(inputMPS)
+     
+        idx = {
+             'vL' : 0,
+             'ph' : 2,
+             'vR' : 1
+        }
 
+        self.idx = idx
+        
         #Physical dimension - we assume it to be constant for the whole MPS
-        DD = np.shape(inputMPS[1])[1]  # not the most elegant way to extract it but eh..
+        DD = np.shape(inputMPS[1])[idx['ph']]  # not the most elegant way to extract it but eh..
 
         self.MPS = inputMPS  
 
-        mChi = [ np.shape(mm)[0] for mm in inputMPS ]
-        mChi.append(np.shape(inputMPS[-1])[-1])
+        mChi = [ np.shape(mm)[idx['vL']] for mm in inputMPS ]
+        mChi.append(np.shape(inputMPS[-1])[idx['vR']])
         #inputMPS[1:] ]  # Should be LL-1 long
         mSV = [1] * (LL+1) # Empty for now 
 
-        print(f"MPS with length {LL} and physical d={DD}")
-        print(f"chi {mChi}")
+        logging.info(f"MPS with length {LL} and physical d={DD}")
+        logging.info(f"chi {mChi}")
 
-
-        # We could build indices like: 
-        # physical go from 1 to L   (ncon doesn't like 0 as idx..)
-        # virtual from L+1 up to 2L 
-        """
-        # Should we use a DICT for the indices? 
-        indices = [{ 
-            'vL': 0,
-            'ph': 1,
-            'vR': offIndices*LL+1
-            }]
-
-        """
-
-        indices=[]
-        # Try to build the indices in a symmetrical way, 
-        # without treating differently the 1st and last site
-        # (anyway should be a trivial contraction if they're just dim 1 scalars on that leg)
-        for midx in range(1,LL+1):  #Builds LL sets of indices from 1 to LL
-            indices.append({ 'vL': offIndices*LL+midx, 'ph': midx, 'vR': offIndices*LL+midx+1 })
 
         self.LL = LL  
         self.DD = DD  
-
-        self.indices = indices
   
         self.chis = mChi
         self.SV = mSV  
@@ -111,17 +116,29 @@ class myMPS:
         #if bringcanonical: self.bringCan()
 
 
-        
-       
-        
+
+
+
+
+    """ 
+    The fat part: bringing an MPS to canonical form 
+    """    
+
 
     # TODO: if I understand correctly, TenPy does QR for the left sweep and SVD for 
     # TODO: the right one, I think it's because it's faster.
     # TODO: should I worry about implementing it?
         
-    def bringCan(self, mode: str='R', epsTrunc: float=1e-10, epsNorm: float=1e-12, chiMax: int = 40):
+    def bringCan(self, mode: str='R', epsTrunc: float=1e-14, epsNorm: float=1e-12, chiMax: int = 40):
 
         """ Brings input myMPS object to canonical form, returns 'form'.
+
+        Input: 
+        - mode: 'L' , 'R' or 'C' for left-can, right-can or mixed (gamma-lambda) canon form
+        - epsTrunc: below this epsilon we drop the SVs 
+        - epsNorm: we decide that the state is normalized if |1-norm| < epsNorm
+        - chiMax: max bond dimension we truncate to 
+        
         We 
         1. perform a left SVD sweep (and drop final piece so the norm should be 1)
         2. perform a right SVD sweep after the left one, and truncate the SV below epsTrunc
@@ -135,14 +152,34 @@ class myMPS:
         But in principle we should always be able to access the Alist,Blist,Glist directly from outside.
         """
 
+        """ Try to uniform indices so that we're consistent with MPO.
+        Internally, it's probably more efficient to work with the (vL, phys, vR) ordering,
+        but outside we probably prefer (vL, vR, phys) to be consistent with the MPO conventions.
+        
+        So one way to do it could be to enforce as input/output the (vL,vR,ph) convention, 
+        then convert internally at the beginning/end to/from the (vL,ph,vR) convention
+        """
+
+        
+
         LL = self.LL
         DD = self.DD
 
         chiIn = self.chis
 
-        MPS = self.MPS
+        #MPS = self.MPS
 
+        ##################################################
+        # INDEX RELABELING: from (vL,vR,ph) to (vL,ph,vR)
+        ##################################################
        
+        MPS = [m.transpose(0,2,1) for m in self.MPS]
+
+
+        # Indices conventions 
+        vL = self.idx['vL']
+        vR = self.idx['vR']
+        ph = self.idx['ph']
 
 
     
@@ -323,7 +360,7 @@ class myMPS:
             for (idxs, sv) in enumerate(S):
                 if sv > epsTrunc:
                     if idxs >= chiMax:
-                        logging.warning(f"Truncating @ {chiMax}, latest SV = {sv}")
+                        logging.info(f"Truncating @ {chiMax}, latest SV = {sv}")
                         break
                     else:
                         Strunc.append(sv)
@@ -504,6 +541,8 @@ class myMPS:
         #    logging.debug(f"Gam[{jj}],{np.shape(Sinvlist[jj-1])},{np.shape(Blist[jj])}")
         #    Glist[jj] = ncon( [Blist[jj], np.diag(Sinvlist[jj+1])],[[-1,-2,1],[1,-3]])
 
+
+
         # Building the canonical form from the A's 
         # And rebuilding the B's from the Gammas 
 
@@ -514,6 +553,16 @@ class myMPS:
             
             Blist[jj] = ncon([ Glist[jj] , np.diag(Slist[jj+1])], [[-1,-2,1], [1,-3]])
 
+
+        """ 
+        Done. Now for output transpose back all matrices 
+            from (vL,ph,vR) to (vL,vR,ph)  
+        """
+
+
+        Alist = [m.transpose(0,2,1) for m in Alist]
+        Blist = [m.transpose(0,2,1) for m in Blist]
+        Glist = [m.transpose(0,2,1) for m in Glist]
 
 
         """ According to the mode selected, 
@@ -546,102 +595,76 @@ class myMPS:
 
 
 
+    # def getIndices(self, offset: int = 7):
 
-
-    def updatePhysIndices( self, openIndices : list ):
-        """ Updates the labels of the physical indices using an input list """
-        if len(openIndices) != (self.LL):
-            logging.warning("Wrong length of open indices list, doing nothing")
-            pass
-        else:
-            indices = self.indices
-            for (ii, idx) in enumerate(indices):
-                idx["ph"] = openIndices[ii]
-            #self.indices = indices  # Is this even necessary ? 
-
-
-
-
-    def getPhysIndices( self ):
-        """ Returns a list with the labels of the physical indices """
-       
-        indices = self.indices
-        listPhys = []
-        [listPhys.append(idx["ph"]) for idx in indices]
-
-        return listPhys
-              
-
-
-              
-    
-    def updateEdgeIndices( self, openIndices : list ):
-        """ Updates the labels of the edge indices using an input list """
-        if len(openIndices) != 2:
-            logging.warning("Wrong length of edge indices list, doing nothing")
-            pass
-        else:
-            indices = self.indices
+    #     """ Realistically when we want to do this we want to expose the 
+    #     uncontracted indices separately"""
         
-            indices[0]["vL"] = openIndices[0]
-            indices[-1]["vR"] = openIndices[1]
-            #self.indices = indices  # Is this even necessary ?
+    #     # We could build indices like: 
+    #     # physical go from 1 to L   (ncon doesn't like 0 as idx..)
+    #     # virtual from L+1 up to 2L 
+        
+    #     indices=[]
+    #     # Try to build the indices in a symmetrical way, 
+    #     # without treating differently the 1st and last site
+    #     # (anyway should be a trivial contraction if they're just dim 1 scalars on that leg)
+    #     for midx, _ in enumerate(self.MPS, start=1):  #Builds LL sets of indices from 1 to LL
+    #         indices.append({ 'vL': offset*self.LL+midx, 'ph': midx, 'vR': offset*self.LL+midx+1 })
+
+
+    # def setIndices(self, indices: list):
+    #     pass
+
+
+    
+    # def updateEdgeIndices( self, openIndices : list ):
+    #     """ Updates the labels of the edge indices using an input list """
+    #     if len(openIndices) != 2:
+    #         logging.warning("Wrong length of edge indices list, doing nothing")
+    #         pass
+    #     else:
+    #         indices = self.indices
+        
+    #         indices[0]["vL"] = openIndices[0]
+    #         indices[-1]["vR"] = openIndices[1]
+    #         #self.indices = indices  # Is this even necessary ?
     
 
 
     
-    def getEdgeIndices( self ):
-        """ Returns a list with the labels of the edge indices """
+    # def getEdgeIndices( self ):
+    #     """ Returns a list with the labels of the edge indices """
        
-        indices = self.indices
-        listEdge = [ indices[0]["vL"], indices[-1]["vR"] ]
+    #     indices = self.indices
+    #     listEdge = [ indices[0]["vL"], indices[-1]["vR"] ]
 
-        return listEdge
+    #     return listEdge
          
 
 
 
-    def getIndices(self):
-        """ Returns a list of lists with the indices for contracting the TN with ncon """
-        iL = []
-        for el in self.indices:
-
-            # Build the (2 or 3-valued) indices list
-            idxs = []
-            
-            if el["vL"] != 0:
-                idxs.append(el["vL"])
-
-            idxs.append(el["ph"])
-
-            if el["vR"] != 0:
-                idxs.append(el["vR"])
-            
-            iL.append(idxs)
-        
-        return iL
 
 
 
-
-
-    def getNorm(self):
+    def getNormSlow(self):
         """ Calculates the MPS norm by ncon-ing everything"""
+        # FIXME: updating for the new index convention (vL vR p),
+        #  check that things still work
         
         MPSconj = [np.conj(m) for m in self.MPS]
 
         indicesM = []
         indicesMc = []
-        for jj,m in enumerate(self.MPS,1):
+        for jj,m in enumerate(self.MPS, start = 1):   # we start the idx from 1 so ncon doesn't complain
             offsetM = (self.LL)*7
             offsetMc = (self.LL)*9
 
-            indicesM.append([offsetM+jj,jj,offsetM+jj+1])
-            indicesMc.append([offsetMc+jj,jj,offsetMc+jj+1])
+            indicesM.append([offsetM+jj,offsetM+jj+1,jj])
+            indicesMc.append([offsetMc+jj,offsetMc+jj+1,jj])
 
-        # Equate first and last indices
-        indicesMc[0][0] = indicesM[0][0]
-        indicesMc[-1][-1] = indicesM[-1][-1]
+        # Equate first and last indices  [we swap vL-vR if we're closing the TN..]
+        indicesMc[0][0] = indicesM[0][0] 
+        indicesMc[-1][1] = indicesM[-1][1]
 
         toContr = []
         [toContr.append(m) for m in self.MPS]
@@ -662,24 +685,93 @@ class myMPS:
 
 
 
-    def getEntropies(self):
+    def getEntropies(self, numSVs: int = 100):
         # Puts in canonical form if necessary and extracts the entropies 
-        if(self.form != 'cccc'):  # TODO: always ops 
-            logging.info("Putting in Right canonical form")
-            self.bringCan()
+        if(self.form not in  ['L','R','C'] ):  
+            logging.warning("Putting in Right canonical form and truncating at {numSVs}")
+            self.bringCan(chiMax = numSVs, epsTrunc=1e-14)
             #print(f"isnormalized? {self.normalized}")
         
         #TODO: check if the formula is correct, factors sqrts etc
         ents = []
         for lambdas in self.SV:
-            si = 0.
-            si = sum([-lam*np.log(lam) for lam in lambdas])
-            ents.append(si)
+            #si = sum([-lam*np.log(lam) for lam in lambdas])
+            ents.append(sum([-lam**2 *np.log(lam**2) for lam in lambdas]))
         
         return ents
 
 
+
+    def overlap(self, withMPS: myMPS ):
+        # FIXME: updating for the new index convention, check that things still work
+
+        """Computes the overap of self with another MPS
+        WARN: this does NOT conjugate, you need to pass the conjugate
+        if you want to compute eg. the norm """
+
+        if len(self.MPS) != len(withMPS.MPS):
+            logging.error("Error: the sizes of the two MPSes do not coincide")
+            exit()
+        if self.DD != withMPS.DD:
+            logging.error("Error: the physical dims of the two MPSes do not coincide")
+            exit()
+
+        # Start from left 
+        tensToContract = [self.MPS[0],withMPS.MPS[0]]
+        
+        # FIXME: updating for the new index convention, check that things still work
+        indicesToContract = [[1,-1,2],[1,-2,2]]
+        blobL = ncon(tensToContract,indicesToContract)
+
+        #Now the bulk 
+        for jj in range(1,len(self.MPS)):
+            #logging.debug(f"{jj}: shapes: {np.shape(blobL)}, {np.shape(withMPS.MPS[jj])}")
+            # FIXME: updating for the new index convention, check that things still work
+
+            blobL = ncon( [blobL, self.MPS[jj]], [[1,-3],[1,-1,-2]])
+            blobL = ncon( [blobL, withMPS.MPS[jj]],[[-1,1,2],[2,-2,1]])
+
+            
+            logging.debug(f"{jj}: after: {np.shape(blobL)}")
+
+        # Close the last site         
+        overl = ncon( [blobL], [[1,1]] )
+        
+
+        return np.real_if_close(overl)
+
+
+        
+
+    def getNorm(self):
+        mconj = myMPS([np.conjugate(m) for m in self.MPS])
+        logging.debug(f"norm of {type(self)} with {type(mconj)}")
+        return self.overlap(mconj)
+        
+
+        
+
+    def expValMPO(self, oper: myMPO ):
+
+        from applMPOMPS import applyMPOtoMPS
+
+        if(self.form != 'R'):
+            self.bringCan(mode='R',epsTrunc=1e-12)
+
+        mconj = myMPS([np.conjugate(m) for m in self.MPS])
+
+        Omps = applyMPOtoMPS(oper, mconj)
+
+        
+        res = self.overlap(Omps)
+        
+        return np.real_if_close(res)
+
+
+
+
 # TODO: refactor this (probably we don't even need it )
+# or move as class method 
 def expValOneSite(iMPS: object, oper: np.array, site: int):
 
     if(iMPS.form != 'LR'):

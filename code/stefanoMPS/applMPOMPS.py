@@ -1,11 +1,16 @@
+
 import numpy as np
-from tensornetwork import ncon
+
 import logging
 
 from myMPSstuff import myMPS
 from myMPOstuff import myMPO
 
-def applyMPOtoMPS( inMPO: myMPO, inMPS: myMPS, trunc: float = 1e-10, chiMax: int = 40, canon: bool = True):
+from tensornetwork import ncon
+
+
+
+def applyMPOtoMPS( inMPO: myMPO, inMPS: myMPS) -> myMPS:
 
     """ Calculate the product of an MPO with an MPS """
 
@@ -17,16 +22,6 @@ def applyMPOtoMPS( inMPO: myMPO, inMPS: myMPS, trunc: float = 1e-10, chiMax: int
         logging.error(f"MPO and MPS don't have the same length (L={inMPO.LL} vs {inMPS.LL}),  aborting")
         return inMPS
     
-
-    # FIXME: do we need to put in can form before applying ?
-
-    #if inMPS.form != 'R':
-    #    logging.warning("Bringing input MPS to right canonical form")
-    #    inMPS.bringCan('LR', 1e-12)
-    #    print(f"norm before = {inMPS.getNorm}")
-
-    #print(inMPS.getIndices())
-    #print(inMPO.getIndices())
 
     """ ncon into new MPS
 
@@ -45,19 +40,13 @@ def applyMPOtoMPS( inMPO: myMPO, inMPS: myMPS, trunc: float = 1e-10, chiMax: int
     newMPS = []
 
     for jj in range(0, inMPS.LL):
-        # Recall mps: vL p* vR  | mpo : vL vR pU pD* 
-        temp = ncon( [inMPS.MPS[jj], inMPO.MPO[jj] ], [[-1,2,-3],[-2,-4,-5,2]] )
-        newMPS.append(temp.reshape(inMPS.chis[jj]*inMPO.chis[jj] , inMPS.DD, inMPS.chis[jj+1]*inMPO.chis[jj+1]))
+        # FIXME CHECK NEW CONVENTIONS
+        # mps: vL vR p*  | mpo : vL vR pU pD* 
+       
+        temp = ncon( [inMPS.MPS[jj], inMPO.MPO[jj] ], [[-1,-3,1],[-2,-4,-5,1]] )
+        newMPS.append(temp.reshape(inMPS.chis[jj]*inMPO.chis[jj], inMPS.chis[jj+1]*inMPO.chis[jj+1], inMPS.DD))
 
 
     MPOMPS = myMPS(newMPS)
-  
-    if canon:
-        MPOMPS.bringCan('R', epsTrunc=trunc, chiMax = chiMax)
-    #print(MPOMPS.chis)
-
-    #print(f"norm after can = {MPOMPS.getNorm()}")
-    #print(f"is it (al least approx) normalized? = {MPOMPS.normalized}")
-
 
     return MPOMPS
