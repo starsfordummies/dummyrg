@@ -1,15 +1,7 @@
-# Last modified: 2022/07/21 19:17:17
+# Last modified: 2022/07/27 15:21:43
 
 import numpy as np
-#from numpy import linalg as LA
-#from tensornetwork import ncon
 import logging
-
-#import math 
-#import copy 
-
-# v_L , v_R , phys_U, phys_D 
-
 
 
 
@@ -58,40 +50,32 @@ class myMPO:
 
     __slots__ = ['LL','DD','MPO','chis']
     
-    def __init__(self, inputMPO: list=randMPO(7)):
+    def __init__(self, inputWs : list=randMPO(7)):
       
-        LL = len(inputMPO)
+        LL = len(inputWs)
+
+        idx = {
+             'vL' : 0,
+             'vR' : 1,
+             'pU' : 3,
+             'pD' : 4,
+        }
        
-
         # Physical dimension 
-        DD = np.shape(inputMPO[1])[3]  # not the most elegant way to extract it but eh..
+        DD = np.shape(inputWs[1])[idx['pU']]  # not the most elegant way to extract it but eh..
         
-        self.MPO = inputMPO 
+        self.MPO = inputWs 
 
-        mChi = [ np.shape(mm)[0] for mm in inputMPO ]
-        mChi.append(np.shape(inputMPO[-1])[1])
+        mChi = [ np.shape(mm)[idx['vL']] for mm in inputWs ]
+        mChi.append(np.shape(inputWs[-1])[idx['vR']])
         
 
         logging.info(f"MPO with length {LL} and physical d={DD}")
         logging.info(f"chi {mChi}")
 
 
-        """
-        # Should we use a DICT for the indices? 
-        # For a given site jj, 
-        indices = [{ 
-            'vL': jj + offIndices*LL,
-            'vR': jj + offIndices*LL+1
-            'phU': jj,
-            'phD': jj + LL,
-            }]
 
-        """
 
         self.LL = LL  
         self.DD = DD  
         self.chis = mChi
-   
-
-     
-     
