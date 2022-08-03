@@ -1,4 +1,4 @@
-# Last modified: 2022/08/03 17:57:35
+# Last modified: 2022/08/03 18:33:51
 
 from __future__ import annotations
 
@@ -73,6 +73,23 @@ def truncSVs(S: np.array, epsTrunc: float, chiMax: int) -> list[float]:
 
     return np.array(Strunc)
 
+def SVD_trunc(M: np.array, epsTrunc: float, chiMax: int) -> tuple[np.array,np.array,np.array]:
+    """ Performs SVD and truncates at a given epsTrunc / chiMax """
+
+    U, S, Vdag = LA.svd(M,full_matrices=0)  
+
+    Strunc = [sv for sv in S[:chiMax] if sv > epsTrunc]
+
+    sizeTruncS = np.size(S)
+
+
+    # If we truncated the SVs, we should truncate accordingly the cols of U
+    # and the rows of Vdag
+
+    U = U[:,:sizeTruncS]
+    Vdag = Vdag[:sizeTruncS,:]
+
+    return U, S, Vdag, sizeTruncS
 
 class myMPS:
 
@@ -95,8 +112,8 @@ class myMPS:
            |         |         |                       |
     .S0--[A0]--S1--[A1]--S2--[A2]--.....--S(LL-1)--[A(LL-1)]--S[LL].
 
-        that is, we have LL sites going from 0 to LL-1 
-        and LL+1 bonds from 0 to LL, of which the 0th and LLth are trivial 
+        that is, we have  *LL sites*  going from 0 to LL-1  
+        and  *LL+1 bonds*  from 0 to LL, of which the 0th and LLth are trivial 
     """
 
     # Fancy stuff for performance saving
@@ -146,7 +163,7 @@ class myMPS:
 
     # TODO: use QR for the first sweep
         
-    def bringCan(self, mode: str='R', epsTrunc: float=1e-14, epsNorm: float=1e-13, chiMax: int = 40) -> tuple[str, str]:
+    def bringCan(self, mode: str='R', epsTrunc: float=1e-12, epsNorm: float=1e-12, chiMax: int = 40) -> tuple[str, str]:
 
         """ Brings input myMPS object to canonical form, returns ('form', 'lastSweep').
 
@@ -303,6 +320,7 @@ class myMPS:
         Mtilde = Alist[LL-1]
         Mtr = np.reshape(Mtilde, (chiA[LL-1],chiB[LL]*DD ))
 
+        """ TODO: I implemented a separate func for all this: 
         U, S, Vdag = LA.svd(Mtr,full_matrices=0)
 
         logging.info("First SVD:")
@@ -322,6 +340,10 @@ class myMPS:
 
         U = U[:,:sizeTruncS]
         Vdag = Vdag[:sizeTruncS,:]
+        """
+
+        U, S, Vdag, sizeTruncS = SVD_trunc(Mtr, epsTrunc, chiMax)
+
 
         chiB[LL-1] = sizeTruncS
         Slist[LL-1] = S  
@@ -346,6 +368,8 @@ class myMPS:
             logging.debug(f"Mtilde[{pjj}] = {np.shape(Mtilde)}  - Reshape it as chiIn_{pjj} , chiB_{pjj+1}*d")
             Mtr = np.reshape(Mtilde, (chiA[idx],chiB[idx+1]*DD ))
 
+            
+            """
             U, S, Vdag = LA.svd(Mtr,full_matrices=0)  
             
             logging.debug( f"SVD: {np.shape(Mtr)} = {np.shape(U)} . {np.shape(S)} . {np.shape(Vdag)}")
@@ -365,7 +389,9 @@ class myMPS:
 
             U = U[:,:sizeTruncS]
             Vdag = Vdag[:sizeTruncS,:]
+            """ 
 
+            U, S, Vdag, sizeTruncS = SVD_trunc(Mtr, epsTrunc, chiMax)
 
             chiB[idx] = sizeTruncS
             
