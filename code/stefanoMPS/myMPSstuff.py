@@ -1,4 +1,4 @@
-# Last modified: 2022/08/03 18:33:51
+# Last modified: 2022/08/03 18:38:04
 
 from __future__ import annotations
 
@@ -65,7 +65,7 @@ def bigEntState(LL: int=10) -> list[np.array]:
 
 
 
-
+# TODO: maybe unnecessary now 
 def truncSVs(S: np.array, epsTrunc: float, chiMax: int) -> list[float]:
     # Truncating the SVs at epsTrunc/chiMax
     # We assume that the input S is sorted in descending order (should be the case for SVD output)
@@ -73,23 +73,32 @@ def truncSVs(S: np.array, epsTrunc: float, chiMax: int) -> list[float]:
 
     return np.array(Strunc)
 
-def SVD_trunc(M: np.array, epsTrunc: float, chiMax: int) -> tuple[np.array,np.array,np.array]:
+
+
+def SVD_trunc(M: np.array, epsTrunc: float, chiMax: int) -> tuple[np.array,np.array,np.array, int]:
     """ Performs SVD and truncates at a given epsTrunc / chiMax """
 
     U, S, Vdag = LA.svd(M,full_matrices=0)  
 
     Strunc = [sv for sv in S[:chiMax] if sv > epsTrunc]
 
+    S = np.array(Strunc)
     sizeTruncS = np.size(S)
 
 
-    # If we truncated the SVs, we should truncate accordingly the cols of U
+    # If we truncated the SVs, we should truncate accordingly 
+    # the cols of U
     # and the rows of Vdag
 
     U = U[:,:sizeTruncS]
     Vdag = Vdag[:sizeTruncS,:]
 
     return U, S, Vdag, sizeTruncS
+
+
+
+
+
 
 class myMPS:
 
