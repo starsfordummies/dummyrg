@@ -48,3 +48,17 @@ def applyMPOtoMPS( inMPO: myMPO, inMPS: myMPS) -> myMPS:
     MPOtimesMPS = myMPS(newMPS)
 
     return MPOtimesMPS
+
+
+
+def expValMPO(psi: myMPS, oper: myMPO ) -> complex:
+
+        from applMPOMPS import applyMPOtoMPS
+
+        if(psi.form != 'R'): psi.bringCan(mode='R',epsTrunc=1e-12)
+
+        # Apply the MPO to the *ket*, otherwise we might need to conjugate it.. 
+        Opsi = applyMPOtoMPS(oper, psi)
+        res = voverlap(Opsi, psi, conjugate=True)
+        
+        return np.real_if_close(res)

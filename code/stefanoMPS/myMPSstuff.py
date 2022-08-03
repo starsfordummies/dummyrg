@@ -1,17 +1,13 @@
-# Last modified: 2022/07/30 20:41:59
+# Last modified: 2022/08/03 17:57:35
 
 from __future__ import annotations
-from decimal import DivisionByZero
 
 import numpy as np
 from numpy import linalg as LA
 from tensornetwork import ncon
 import logging
 
-from myMPOstuff import myMPO
-
-
-# I switched to theconvention
+# MPS Indices convention:
 # v_L , v_R , phys 
 
 
@@ -649,22 +645,6 @@ class myMPS:
         norm = voverlap(self, self, conjugate=True)
         if np.imag(norm)/np.real(norm) < 1e-15: norm = np.real(norm)
         return norm 
-        
-
-        
-
-    def expValMPO(self, oper: myMPO ) -> complex:
-
-        from applMPOMPS import applyMPOtoMPS
-
-        if(self.form != 'R'): self.bringCan(mode='R',epsTrunc=1e-12)
-
-        # Apply the MPO to the *ket*, otherwise we might need to conjugate it.. 
-        Opsi = applyMPOtoMPS(oper, self)
-        res = voverlap(Opsi, self, conjugate=True)
-        
-        return np.real_if_close(res)
-
 
 
 
