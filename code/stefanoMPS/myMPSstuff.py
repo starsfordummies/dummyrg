@@ -1,4 +1,4 @@
-# Last modified: 2022/08/03 18:38:04
+# Last modified: 2022/08/03 20:46:49
 
 from __future__ import annotations
 
@@ -527,6 +527,9 @@ class myMPS:
         
             lastSweep = 'L'
 
+            if( chiA != chiB): 
+                raise ValueError("Something strange: after 3rd sweep chi's still changed")
+
 
         ###############################################
         ###############################################
@@ -568,7 +571,8 @@ class myMPS:
                 Glist[jj] = ncon( [np.diag(Sinvlist[jj]), Alist[jj]],[[-1,1],[1,-2,-3]])
                 Blist[jj] = ncon([ Glist[jj] , np.diag(Slist[jj+1])], [[-1,-2,1], [1,-3]])
 
-
+        else: 
+            raise ValueError("Wrong lastSweep")
 
 
         """ 
@@ -582,33 +586,32 @@ class myMPS:
         Glist = [m.transpose(0,2,1) for m in Glist]
 
 
+        return  lastSweep
+
+
+    def set_form(self, mode: str = 'R'):
+
         """ According to the mode selected, 
         set the MPS matrices to either the A,B or Gammas
         """
 
         if mode == 'L':
-            self.MPS = Alist
+            self.MPS = self.Alist
             self.form = 'L'
-            self.chis = chiA
             logging.info("Setting MPS matrices to LEFT form ")
         elif mode == 'R' or mode == 'LR': #for backwards compatibility
-            self.MPS = Blist
+            self.MPS = self.Blist
             self.form = 'R'
-            self.chis = chiB
             logging.info("Setting MPS matrices to RIGHT form ")
         elif mode == 'C':
-            self.MPS = Glist
+            self.MPS = self.Glist
             self.form = 'C'
-            self.chis = chiA
             logging.info("Setting MPS matrices to CANONICAL form ")
         else:
             logging.error("Wrong form specified, leaving undetermined ")
             self.form = 'x'
         
-
-        return self.form, lastSweep
-
-
+        return self.form
 
 
 
