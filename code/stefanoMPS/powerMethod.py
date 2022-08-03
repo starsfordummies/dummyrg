@@ -76,7 +76,7 @@ def power_method(MPO: myMPO, startMPS: myMPS, chiM: int, iters: int = 200, HMPO:
         logging.warning(f"Largest entropy: S({locMax}) = {ents[locMax]}")
         logging.warning(f"entropies = {ents}")
 
-    print(f"max chi reached: {max_chi_reached} (vs. chiMax = {chiM}), final dSmid = {devec[-1]}")
+    print(f"max chi reached(/max): {max_chi_reached}/{chiM}, final dSmid = {devec[-1]}")
 
     # return full entropies, not just midchain ones
     if full_ents: 
@@ -86,6 +86,7 @@ def power_method(MPO: myMPO, startMPS: myMPS, chiM: int, iters: int = 200, HMPO:
         Svec = ent_mids
 
     return oPsi, iter, Svec, devec, energies 
+
 
 
 
