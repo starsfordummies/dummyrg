@@ -1,4 +1,4 @@
-# Last modified: 2022/08/03 20:46:49
+# Last modified: 2022/08/03 21:02:21
 
 from __future__ import annotations
 
@@ -126,9 +126,9 @@ class myMPS:
     """
 
     # Fancy stuff for performance saving
-    __slots__ = ['LL','DD','MPS','chis','SV','SVinv','form','idx','normalized']
+    __slots__ = ['LL','DD','MPS','chis','SV','SVinv','form','idx','normalized','canon']
 
-    def __init__(self, inputMPS: list=randMPS(LL=7, chi=20, d=2), form: str='x'):
+    def __init__(self, inputMPS: list=randMPS(LL=7, chi=20, d=2)):
       
         LL = len(inputMPS)
      
@@ -161,6 +161,7 @@ class myMPS:
         self.SV = mSV  
         self.SVinv = mSV  
         self.form = 'x'  # By default we're not in any particular form 
+        self.canon = False # by default not canon unless we say it is 
 
 
 
@@ -172,12 +173,11 @@ class myMPS:
 
     # TODO: use QR for the first sweep
         
-    def bringCan(self, mode: str='R', epsTrunc: float=1e-12, epsNorm: float=1e-12, chiMax: int = 40) -> tuple[str, str]:
+    def bringCan(self, epsTrunc: float=1e-12, epsNorm: float=1e-12, chiMax: int = 40) -> tuple[str, str]:
 
         """ Brings input myMPS object to canonical form, returns ('form', 'lastSweep').
 
         Input: 
-        - mode: 'L' , 'R' or 'C' for left-can, right-can or mixed (gamma-lambda) canon form
         - epsTrunc: below this epsilon we drop the SVs 
         - epsNorm: we decide that the state is normalized if |1-norm| < epsNorm
         - chiMax: max bond dimension we truncate to 
@@ -586,14 +586,22 @@ class myMPS:
         Glist = [m.transpose(0,2,1) for m in Glist]
 
 
+        self.canon = True
+
         return  lastSweep
 
 
     def set_form(self, mode: str = 'R'):
 
+
         """ According to the mode selected, 
         set the MPS matrices to either the A,B or Gammas
+        - mode: 'L' , 'R' or 'C' for left-can, right-can or mixed (gamma-lambda) canon form
+
         """
+        if not self.canon:
+            print("MPS not canonical, bringing to canon form")
+            self.bringCan()
 
         if mode == 'L':
             self.MPS = self.Alist
@@ -655,9 +663,9 @@ class myMPS:
     # it's unlikely that we want to be truncating here.. 
     def getEntropies(self, numSVs: int = 0 ) -> list[float]:
         # Puts in canonical form if necessary and extracts the entropies 
-        if(self.form not in  ['L','R','C'] or self.normalized == 0 ):  
+        if not self.canon or not self.normalized:  
             if numSVs == 0: numSVs = np.max(self.chis)
-            logging.warning(f"Putting in Right canonical form and truncating at {numSVs}")
+            logging.warning(f"Putting in canonical form and truncating at {numSVs}")
             self.bringCan(chiMax = numSVs, epsTrunc=1e-14)
 
         
@@ -689,7 +697,7 @@ class myMPS:
     def expValOneSite(self, oper: np.array, site: int) -> complex:
 
         if(self.form != 'R'):
-            self.bringCan(mode='R',epsTrunc=1e-12)
+            self.set_form(mode='R')
 
         # we can simply use the canonical form to compute it instantaneously
 
