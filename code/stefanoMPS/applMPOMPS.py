@@ -1,12 +1,12 @@
-from myMPSstuff import myMPS
-from myMPOstuff import myMPO
+import myMPSstuff as mps
+import myMPOstuff as mpo
 
 from tensornetwork import ncon
 import numpy as np 
 
 
 
-def applyMPOtoMPS( inMPO: myMPO, inMPS: myMPS) -> myMPS:
+def applyMPOtoMPS( inMPO: mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
 
     """ Calculate the product of an MPO with an MPS """
 
@@ -46,13 +46,13 @@ def applyMPOtoMPS( inMPO: myMPO, inMPS: myMPS) -> myMPS:
     # Sanity check 
     #if any(n.any() == None for n in newMPS): raise ValueError("didn't build all elems of newMPS")
     
-    MPOtimesMPS = myMPS(newMPS)
+    MPOtimesMPS = mps.myMPS(newMPS)
 
     return MPOtimesMPS
 
 
 
-def expValMPO(psi: myMPS, oper: myMPO ) -> complex:
+def expValMPO(psi: mps.myMPS, oper: mpo.myMPO ) -> complex:
 
         from applMPOMPS import applyMPOtoMPS
 
@@ -60,6 +60,6 @@ def expValMPO(psi: myMPS, oper: myMPO ) -> complex:
 
         # Apply the MPO to the *ket*, otherwise we might need to conjugate it.. 
         Opsi = applyMPOtoMPS(oper, psi)
-        res = myMPS.voverlap(Opsi, psi, conjugate=True)
+        res = mps.voverlap(Opsi, psi, conjugate=True)
         
         return np.real_if_close(res)

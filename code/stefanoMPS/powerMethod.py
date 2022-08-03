@@ -1,7 +1,7 @@
 
 from __future__ import annotations
 
-from applMPOMPS import applyMPOtoMPS
+import applMPOMPS as mpomps
 import logging
 
 from typing import TYPE_CHECKING
@@ -25,7 +25,7 @@ def power_method(MPO: myMPO, startMPS: myMPS, chiM: int, iters: int = 200, HMPO:
     midchain = LL//2
 
     max_chi_reached = max(startMPS.chis)
-    oPsi = applyMPOtoMPS(MPO, startMPS)
+    oPsi = mpomps.applyMPOtoMPS(MPO, startMPS)
 
     # here comes the trunc
     oPsi.bringCan(chiMax = chiM)
@@ -46,7 +46,7 @@ def power_method(MPO: myMPO, startMPS: myMPS, chiM: int, iters: int = 200, HMPO:
     progress_bar = tqdm(range(1,iters+1))
     # for j in tqdm(range(1,iters)):
     for jj in progress_bar:
-        oPsi = applyMPOtoMPS(MPO, oPsi)  
+        oPsi = mpomps.applyMPOtoMPS(MPO, oPsi)  
         oPsi.bringCan(chiMax = chiM)
 
         curr_chi = max(oPsi.chis) 
@@ -63,7 +63,7 @@ def power_method(MPO: myMPO, startMPS: myMPS, chiM: int, iters: int = 200, HMPO:
             iter.append(jj)
             ent_mids.append(ent_new)
             if full_ents: entropies.append(ents)
-            energies.append(oPsi.expValMPO(HMPO))
+            energies.append(mpomps.expValMPO(oPsi,HMPO))
             #print(j, oPsi.chis)
 
 

@@ -1,4 +1,4 @@
-# Last modified: 2022/08/03 21:02:21
+# Last modified: 2022/08/03 21:58:18
 
 from __future__ import annotations
 
@@ -126,7 +126,7 @@ class myMPS:
     """
 
     # Fancy stuff for performance saving
-    __slots__ = ['LL','DD','MPS','chis','SV','SVinv','form','idx','normalized','canon']
+    __slots__ = ['LL','DD','MPS','chis','SV','SVinv','idx','normalized','canon','curr_form']
 
     def __init__(self, inputMPS: list=randMPS(LL=7, chi=20, d=2)):
       
@@ -160,7 +160,7 @@ class myMPS:
         self.chis = mChi
         self.SV = mSV  
         self.SVinv = mSV  
-        self.form = 'x'  # By default we're not in any particular form 
+        self.curr_form = 'x'  # By default we're not in any particular form 
         self.canon = False # by default not canon unless we say it is 
 
 
@@ -461,7 +461,7 @@ class myMPS:
         logging.info("and the SVs squared:")
         
         
-        lastSweep = 'R'
+        curr_form = 'R'
 
 
      
@@ -525,7 +525,7 @@ class myMPS:
                 logging.warning(f"Warning: state is not normalized even after 3 sweeps, |1-norm| = {abs(1.-normsq)} ")
                     
         
-            lastSweep = 'L'
+            curr_form = 'L'
 
             if( chiA != chiB): 
                 raise ValueError("Something strange: after 3rd sweep chi's still changed")
@@ -552,43 +552,19 @@ class myMPS:
         self.SVinv = Sinvlist
         
 
-        Glist = [1]*LL
-
-        if lastSweep == 'R':
-            # Building the canonical form from the B's 
-            # And rebuilding the B's from the Gammas 
-
-            Glist[0] = Blist[0]
-            for jj in range(0,LL):
-                Glist[jj] = ncon( [Blist[jj], np.diag(Sinvlist[jj+1])],[[-1,-2,1],[1,-3]])
-                Alist[jj] = ncon([ np.diag(Slist[jj]), Glist[jj] ], [[-1,1],[1,-2,-3]])
-
-        elif lastSweep == 'L':
-            # Building the canonical form from the A's 
-            # And rebuilding the B's from the Gammas 
-    
-            for jj in range(0,LL):
-                Glist[jj] = ncon( [np.diag(Sinvlist[jj]), Alist[jj]],[[-1,1],[1,-2,-3]])
-                Blist[jj] = ncon([ Glist[jj] , np.diag(Slist[jj+1])], [[-1,-2,1], [1,-3]])
-
-        else: 
-            raise ValueError("Wrong lastSweep")
-
-
-        """ 
-        Done. Now for output transpose back all matrices 
-            from (vL,ph,vR) to (vL,vR,ph)  
-        """
-
-
-        Alist = [m.transpose(0,2,1) for m in Alist]
-        Blist = [m.transpose(0,2,1) for m in Blist]
-        Glist = [m.transpose(0,2,1) for m in Glist]
-
 
         self.canon = True
+        self.curr_form = curr_form 
 
-        return  lastSweep
+        # Revert indices to outside convention
+        if curr_form == 'L':
+            self.MPS = [m.transpose(0,2,1) for m in Alist]
+        elif curr_form == 'R':
+            self.MPS = [m.transpose(0,2,1) for m in Blist]
+            
+
+
+        return  curr_form
 
 
     def set_form(self, mode: str = 'R'):
@@ -603,16 +579,63 @@ class myMPS:
             print("MPS not canonical, bringing to canon form")
             self.bringCan()
 
+
+        if self.curr_form == mode:
+            return self.curr_form
+
+            
+        Glist = [1]*self.LL
+
+        # back to working convention TODO: might not need to if we ncon right
+        work = [m.transpose(0,2,1) for m in self.MPS]
+
+        if self.curr_form == 'R':
+            # Building the canonical form from the B's 
+            # And rebuilding the B's from the Gammas 
+
+            Blist = work
+
+            Glist[0] = Blist[0]
+            for jj in range(0,self.LL):
+                Glist[jj] = ncon( [Blist[jj], np.diag(self.Sinvlist[jj+1])],[[-1,-2,1],[1,-3]])
+                Alist[jj] = ncon([ np.diag(self.Slist[jj]), Glist[jj] ], [[-1,1],[1,-2,-3]])
+
+        elif self.curr_form == 'L':
+            # Building the canonical form from the A's 
+            # And rebuilding the B's from the Gammas 
+
+            Alist = work
+    
+            for jj in range(0,self.LL):
+                Glist[jj] = ncon( [np.diag(self.Sinvlist[jj]), Alist[jj]],[[-1,1],[1,-2,-3]])
+                Blist[jj] = ncon([ Glist[jj] , np.diag(self.Slist[jj+1])], [[-1,-2,1], [1,-3]])
+
+        else: 
+            raise ValueError("Wrong lastSweep")
+
+
+        """ 
+        Done. Now for output transpose back all matrices 
+            from (vL,ph,vR) to (vL,vR,ph)  
+        """
+
+
+      
+
+
         if mode == 'L':
-            self.MPS = self.Alist
+            Alist = [m.transpose(0,2,1) for m in Alist]
+            self.MPS = Alist
             self.form = 'L'
             logging.info("Setting MPS matrices to LEFT form ")
         elif mode == 'R' or mode == 'LR': #for backwards compatibility
-            self.MPS = self.Blist
+            Blist = [m.transpose(0,2,1) for m in Blist]
+            self.MPS = Blist
             self.form = 'R'
             logging.info("Setting MPS matrices to RIGHT form ")
         elif mode == 'C':
-            self.MPS = self.Glist
+            Glist = [m.transpose(0,2,1) for m in Glist]
+            self.MPS = Glist
             self.form = 'C'
             logging.info("Setting MPS matrices to CANONICAL form ")
         else:
