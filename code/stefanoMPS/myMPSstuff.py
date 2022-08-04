@@ -1,4 +1,4 @@
-# Last modified: 2022/08/03 21:58:18
+# Last modified: 2022/08/04 16:21:49
 
 from __future__ import annotations
 
@@ -597,8 +597,8 @@ class myMPS:
 
             Glist[0] = Blist[0]
             for jj in range(0,self.LL):
-                Glist[jj] = ncon( [Blist[jj], np.diag(self.Sinvlist[jj+1])],[[-1,-2,1],[1,-3]])
-                Alist[jj] = ncon([ np.diag(self.Slist[jj]), Glist[jj] ], [[-1,1],[1,-2,-3]])
+                Glist[jj] = ncon( [Blist[jj], np.diag(self.SVinv[jj+1])],[[-1,-2,1],[1,-3]])
+                Alist[jj] = ncon([ np.diag(self.SV[jj]), Glist[jj] ], [[-1,1],[1,-2,-3]])
 
         elif self.curr_form == 'L':
             # Building the canonical form from the A's 
@@ -607,8 +607,8 @@ class myMPS:
             Alist = work
     
             for jj in range(0,self.LL):
-                Glist[jj] = ncon( [np.diag(self.Sinvlist[jj]), Alist[jj]],[[-1,1],[1,-2,-3]])
-                Blist[jj] = ncon([ Glist[jj] , np.diag(self.Slist[jj+1])], [[-1,-2,1], [1,-3]])
+                Glist[jj] = ncon( [np.diag(self.SVinv[jj]), Alist[jj]],[[-1,1],[1,-2,-3]])
+                Blist[jj] = ncon([ Glist[jj] , np.diag(self.SV[jj+1])], [[-1,-2,1], [1,-3]])
 
         else: 
             raise ValueError("Wrong lastSweep")
