@@ -1,4 +1,4 @@
-# Last modified: 2022/08/04 16:21:49
+# Last modified: 2022/08/04 16:53:07
 
 from __future__ import annotations
 
@@ -594,6 +594,7 @@ class myMPS:
             # And rebuilding the B's from the Gammas 
 
             Blist = work
+            Alist = Blist[:]
 
             Glist[0] = Blist[0]
             for jj in range(0,self.LL):
@@ -605,6 +606,8 @@ class myMPS:
             # And rebuilding the B's from the Gammas 
 
             Alist = work
+            Blist = Alist[:]
+
     
             for jj in range(0,self.LL):
                 Glist[jj] = ncon( [np.diag(self.SVinv[jj]), Alist[jj]],[[-1,1],[1,-2,-3]])
