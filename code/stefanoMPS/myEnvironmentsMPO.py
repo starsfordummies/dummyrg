@@ -37,11 +37,12 @@ def build_right_env(psi: mps.myMPS, o: mpo.myMPO, j: int = -99):
     right_env = [np.array(1.).reshape(1,1,1)]*((psi.LL)+1)
     for jj, (Bj, Wj) in enumerate(zip(psi.MPS[::-1], o.MPO[::-1])):
         # mps: vL vR p*  | mpo : vL vR pU pD* 
-        rjj = -jj-1
+        rjj = -jj-1 
+
         temp = ncon([Bj, right_env[rjj]], [[-3,1,-4],[-1,-2,1]])
         temp = ncon([Wj, temp],[[-2,2,-4,4],[-1,2,-3,4]])
         right_env[rjj-1] = ncon([np.conj(Bj),temp],[[-1,1,4],[1,-2,-3,4]])
-        print(rjj-1, np.shape(Bj), np.shape(Wj), np.shape(right_env[rjj]), np.shape(right_env[rjj-1]))
+        #print(rjj-1, np.shape(Bj), np.shape(Wj), np.shape(right_env[rjj]), np.shape(right_env[rjj-1]))
     return right_env
 
 
