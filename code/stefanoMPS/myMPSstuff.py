@@ -1,4 +1,4 @@
-# Last modified: 2022/08/04 16:53:07
+# Last modified: 2022/08/05 17:28:12
 
 from __future__ import annotations
 
@@ -581,6 +581,7 @@ class myMPS:
 
 
         if self.curr_form == mode:
+            # no need to do anything, already in the mode we want 
             return self.curr_form
 
             
