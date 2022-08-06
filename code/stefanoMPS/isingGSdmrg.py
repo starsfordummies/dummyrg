@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import myMPSstuff as mps
 import myMPOstuff as mpo
-import applMPOMPS as mpomps
 
 import myDMRG as dmrg
 
@@ -17,6 +16,12 @@ LLL = 20
 chiM = 40
 
 gg = 0.4
+
+"""
+# Do it with tenpy 
+E_tenpy, psi_tenpy, _ = example_DMRG_tf_ising_finite(LLL, gg, chiM)
+Smid_tenpy = psi_tenpy.entanglement_entropy()[(LLL-1)//2]
+"""
 
 
 psi = mps.myMPS(mps.randMPS(LLL))
