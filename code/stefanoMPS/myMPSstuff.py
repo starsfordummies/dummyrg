@@ -1,4 +1,4 @@
-# Last modified: 2022/08/05 17:28:12
+# Last modified: 2022/08/22 15:39:26
 
 from __future__ import annotations
 
@@ -81,7 +81,12 @@ def SVD_trunc(M: np.array, epsTrunc: float, chiMax: int) -> tuple[np.array,np.ar
     U, S, Vdag = LA.svd(M,full_matrices=0)  
 
     Strunc = [sv for sv in S[:chiMax] if sv > epsTrunc]
-
+    
+    if len(S) - len(Strunc) > 10:  
+        print(f"DEBUG: {S} vs {Strunc}")
+    else:
+        print(len(S), len(Strunc))
+    
     S = np.array(Strunc)
     sizeTruncS = np.size(S)
 

@@ -29,7 +29,10 @@ psi = mps.myMPS(mps.randMPS(LLL,chi=20))
 
 Hising = mpo.myMPO(IsingMPO(LLL, J=1., g=gg))
 
-Emin = dmrg.findGS_DMRG(Hising, psi)
+Emin1 = mpomps.expValMPO(psi, Hising)
 
-Emin = mpomps.expValMPO(psi, Hising)
-print(Emin)
+Emin2 = dmrg.findGS_DMRG(Hising, psi)
+
+Emin3 = mpomps.expValMPO(psi, Hising)
+
+print(Emin1, Emin2, Emin3, E_tenpy)

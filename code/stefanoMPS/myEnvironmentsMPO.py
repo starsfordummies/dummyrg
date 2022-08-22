@@ -6,15 +6,19 @@ from tensornetwork import ncon
 import numpy as np 
 
 
-def build_left_env(psi: mps.myMPS, o: mpo.myMPO, j: int = -99 ):
+def init_env(LL: int):
     
-    # FIXME: ugly hack for later when we want to update 
-    if j == -99: j = psi.LL
+    env = [np.array(1.).reshape(1,1,1)]*(LL+1)
+  
+    return env
 
-    if j < 0 or j > psi.LL:
-        raise ValueError("left env out of MPS bounds")
 
-    left_env = [np.array(1.).reshape(1,1,1)]*((psi.LL)+1)
+def build_left_env(psi: mps.myMPS, o: mpo.myMPO):
+    
+    # FIXME: we don't really need the last element of the L env, so we can truncate at [:-1]
+
+    left_env = init_env(psi.LL)
+
     for jj, (Aj, Wj) in enumerate(zip(psi.MPS, o.MPO)):
         # mps: vL vR p*  | mpo : vL vR pU pD* 
         #print(f"ncon-ing L[{jj}] with A[{jj}] W[{jj}] A[{jj}]")
@@ -26,15 +30,32 @@ def build_left_env(psi: mps.myMPS, o: mpo.myMPO, j: int = -99 ):
 
 
 
+def update_left_env(lenv: list[np.array], Aj: np.array, wj: np.array, jj: int ):
+    """ Updates the left environment with the new matrix A[j]
+     corresponding to the j-th site.
+    So eg. if we feed an updated A3, we will build an updated contraction
+      / A3*-       /-
+    L3- W3-   =  L4 - 
+      \ A3-        \-
 
-def build_right_env(psi: mps.myMPS, o: mpo.myMPO, j: int = -99):
+    """
     
-    if j == -99: j = psi.LL
+    temp = ncon([lenv[jj], Aj], [[-1,-2,1],[1,-3,-4]])
+    temp = ncon([temp, wj],[[-1,2,-3,4],[2,-2,-4,4]])
 
-    if j < 0 or j > psi.LL:
-        raise ValueError("right env out of MPS bounds")
+    lenv[jj+1] = ncon([temp, np.conj(Aj)],[[1,-2,-3,4],[1,-1,4]])
 
-    right_env = [np.array(1.).reshape(1,1,1)]*((psi.LL)+1)
+    return lenv # though we already updated it in place 
+
+
+
+
+def build_right_env(psi: mps.myMPS, o: mpo.myMPO):
+    
+    # FIXME: we don't really need the 1st element of the R env, so we can truncate at [1:]
+
+    right_env = init_env(psi.LL)
+
     for jj, (Bj, Wj) in enumerate(zip(psi.MPS[::-1], o.MPO[::-1])):
         # mps: vL vR p*  | mpo : vL vR pU pD* 
         rjj = -jj-1 
@@ -42,11 +63,31 @@ def build_right_env(psi: mps.myMPS, o: mpo.myMPO, j: int = -99):
         temp = ncon([Bj, right_env[rjj]], [[-3,1,-4],[-1,-2,1]])
         temp = ncon([Wj, temp],[[-2,2,-4,4],[-1,2,-3,4]])
         right_env[rjj-1] = ncon([np.conj(Bj),temp],[[-1,1,4],[1,-2,-3,4]])
-        #print(rjj-1, np.shape(Bj), np.shape(Wj), np.shape(right_env[rjj]), np.shape(right_env[rjj-1]))
     return right_env
 
 
-def build_environments(psi: mps.myMPS, o: mpo.myMPO) -> list[np.array]:
+
+
+
+
+def update_right_env(renv: list[np.array], Bj: np.array, wj: np.array, jj: int ):
+    """ Updates the right environment with the new matrix B[j] 
+    corresponding to the j-th site. 
+    So eg. if we feed an updated B3, we will build an updated contraction
+    - B2*-\        \
+    - W2-- R3  =   -R2 
+    - B2--/        / 
+    """
+    
+
+    temp = ncon([Bj, renv[jj+1]], [[-3,1,-4],[-1,-2,1]])
+    temp = ncon([wj, temp],[[-2,2,-4,4],[-1,2,-3,4]])
+    renv[jj] = ncon([np.conj(Bj),temp],[[-1,1,4],[1,-2,-3,4]])
+
+    return renv
+
+
+def build_environments(psi: mps.myMPS, o: mpo.myMPO) -> tuple[list[np.array],list[np.array]]:
     # Build the left and right envs for DMRG 
 
     if o.DD != psi.DD: 
@@ -58,7 +99,7 @@ def build_environments(psi: mps.myMPS, o: mpo.myMPO) -> list[np.array]:
     if not psi.canon: psi.bringCan(epsTrunc=1e-12)
 
 
-    le = build_left_env(psi, o, psi.LL)
-    re = build_right_env(psi, o, psi.LL)
-    #build_right_env(psi, o, j )
+    le = build_left_env(psi, o)
+    re = build_right_env(psi, o)
+
     return le, re
