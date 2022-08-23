@@ -45,6 +45,8 @@ def update_left_env(lenv: list[np.array], Aj: np.array, wj: np.array, jj: int ):
 
     lenv[jj+1] = ncon([temp, np.conj(Aj)],[[1,-2,-3,4],[1,-1,4]])
 
+    print(f"updating L[{jj+1}]")
+
     return lenv # though we already updated it in place 
 
 
@@ -84,6 +86,7 @@ def update_right_env(renv: list[np.array], Bj: np.array, wj: np.array, jj: int )
     temp = ncon([wj, temp],[[-2,2,-4,4],[-1,2,-3,4]])
     renv[jj] = ncon([np.conj(Bj),temp],[[-1,1,4],[1,-2,-3,4]])
 
+    print(f"updating R[{jj}]")
     return renv
 
 

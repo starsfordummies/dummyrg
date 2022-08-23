@@ -1,4 +1,4 @@
-# Last modified: 2022/08/22 15:39:26
+# Last modified: 2022/08/23 18:14:39
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import logging
 # v_L , v_R , phys 
 
 
-def randMPS(LL: int=10, chi: int=5, d: int=2) -> list[np.array]:
+def randMPS(LL: int=10, chi: int=5, d: int=2) -> list[np.ndarray]:
 
     """ Random MPS matrix list Builder function - OBC for now 
     Returns a list of length LL of random tensors with bond dimension chi 
@@ -32,7 +32,7 @@ def randMPS(LL: int=10, chi: int=5, d: int=2) -> list[np.array]:
     return outMPS
 
 
-def plusState(LL: int=10) -> list[np.array]:
+def plusState(LL: int=10) -> list[np.ndarray]:
 
     """ Returns a product "plus" state
     """
@@ -47,7 +47,7 @@ def plusState(LL: int=10) -> list[np.array]:
 
     return outMPS
 
-def bigEntState(LL: int=10) -> list[np.array]:
+def bigEntState(LL: int=10) -> list[np.ndarray]:
 
     """ Returns a product "plus" state
     """
@@ -64,41 +64,41 @@ def bigEntState(LL: int=10) -> list[np.array]:
     return outMPS
 
 
-
+"""
 # TODO: maybe unnecessary now 
-def truncSVs(S: np.array, epsTrunc: float, chiMax: int) -> list[float]:
+def truncSVs(S: np.ndarray, epsTrunc: float, chiMax: int) -> list[float]:
     # Truncating the SVs at epsTrunc/chiMax
     # We assume that the input S is sorted in descending order (should be the case for SVD output)
     Strunc = [sv for sv in S[:chiMax] if sv > epsTrunc]
 
     return np.array(Strunc)
+"""
 
 
-
-def SVD_trunc(M: np.array, epsTrunc: float, chiMax: int) -> tuple[np.array,np.array,np.array, int]:
+def SVD_trunc(M: np.ndarray, epsTrunc: float, chiMax: int) -> tuple[np.ndarray,np.ndarray,np.ndarray, int]:
     """ Performs SVD and truncates at a given epsTrunc / chiMax """
 
-    U, S, Vdag = LA.svd(M,full_matrices=0)  
+    u, s, Vdag = LA.svd(M,full_matrices=0)  
 
-    Strunc = [sv for sv in S[:chiMax] if sv > epsTrunc]
+    Strunc = [sv for sv in s[:chiMax] if sv > epsTrunc]
     
-    if len(S) - len(Strunc) > 10:  
-        print(f"DEBUG: {S} vs {Strunc}")
-    else:
-        print(len(S), len(Strunc))
+    # if len(S) - len(Strunc) > 3:  
+    #     print(f"DEBUG: {S} vs {Strunc}")
+    # else:
+    #     print(len(S), len(Strunc))
     
-    S = np.array(Strunc)
-    sizeTruncS = np.size(S)
+    s = np.array(Strunc)
+    sizeTruncS = np.size(s)
 
 
     # If we truncated the SVs, we should truncate accordingly 
     # the cols of U
     # and the rows of Vdag
 
-    U = U[:,:sizeTruncS]
+    u = u[:,:sizeTruncS]
     Vdag = Vdag[:sizeTruncS,:]
 
-    return U, S, Vdag, sizeTruncS
+    return u, s, Vdag, sizeTruncS
 
 
 
@@ -572,6 +572,10 @@ class myMPS:
         return  curr_form
 
 
+
+
+
+
     def set_form(self, mode: str = 'R'):
 
 
@@ -581,9 +585,9 @@ class myMPS:
 
         """
         if not self.canon:
-            print("MPS not canonical, bringing to canon form")
+            #print("MPS not canonical, bringing to canon form")
             self.bringCan()
-
+    
 
         if self.curr_form == mode:
             # no need to do anything, already in the mode we want 
@@ -635,23 +639,23 @@ class myMPS:
         if mode == 'L':
             Alist = [m.transpose(0,2,1) for m in Alist]
             self.MPS = Alist
-            self.form = 'L'
+            self.curr_form = 'L'
             logging.info("Setting MPS matrices to LEFT form ")
         elif mode == 'R' or mode == 'LR': #for backwards compatibility
             Blist = [m.transpose(0,2,1) for m in Blist]
             self.MPS = Blist
-            self.form = 'R'
+            self.curr_form = 'R'
             logging.info("Setting MPS matrices to RIGHT form ")
         elif mode == 'C':
             Glist = [m.transpose(0,2,1) for m in Glist]
             self.MPS = Glist
-            self.form = 'C'
+            self.curr_form = 'C'
             logging.info("Setting MPS matrices to CANONICAL form ")
         else:
             logging.error("Wrong form specified, leaving undetermined ")
-            self.form = 'x'
+            self.curr_form = 'x'
         
-        return self.form
+        return self.curr_form
 
 
 
@@ -723,6 +727,13 @@ class myMPS:
         norm = voverlap(self, self, conjugate=True)
         if np.imag(norm)/np.real(norm) < 1e-15: norm = np.real(norm)
         return norm 
+
+    def checkNormalized(self, eps=1e-12) -> bool:
+        if abs(1.-self.getNorm()) > eps:
+            print(f"state is not normalized, norm = {self.getNorm()}")
+            self.normalized = False
+        else:
+            self.normalized = True
 
 
 

@@ -58,6 +58,7 @@ def expValMPO(psi: mps.myMPS, oper: mpo.myMPO ) -> complex:
         from applMPOMPS import applyMPOtoMPS
 
         if not psi.canon: psi.bringCan(epsTrunc=1e-12)
+        if not psi.normalized: psi.bringCan(epsTrunc=1e-12)
 
         # Apply the MPO to the *ket*, otherwise we might need to conjugate it.. 
         Opsi = applyMPOtoMPS(oper, psi)
