@@ -30,28 +30,14 @@ psi = mps.myMPS(mps.randMPS(LLL,chi=20))
 
 Hising = mpo.myMPO(IsingMPO(LLL, J=1., g=gg))
 
-
-print(f"norm1 = {psi.getNorm()}")
-
 Emin1 = mpomps.expValMPO(psi, Hising)
-
-
-print(f"norm2 = {psi.getNorm()}")
 
 Emin2 = dmrg.findGS_DMRG(Hising, psi)
 
-
 print(f"norm3 = {psi.getNorm()}")
-psi.checkNormalized()
-
 Emin3 = mpomps.expValMPO(psi, Hising)
-
 print(f"norm4 = {psi.getNorm()}")
 
-
-psi.bringCan()
-Emin4 = mpomps.expValMPO(psi, Hising)
-
-print(Emin1, Emin2, Emin3, Emin4, E_tenpy)
+print(Emin1, Emin2, Emin3, E_tenpy)
 
 print(psi.getNorm())

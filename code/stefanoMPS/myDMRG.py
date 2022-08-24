@@ -41,6 +41,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
 
     toleig = 1e-6
 
+    guessTheta = np.random.rand(chis[0]*dd*dd*chis[2])
 
     for ns in range(0,nsweeps):
 
@@ -67,8 +68,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
 
             Heff = LAS.LinearOperator((dimH,dimH), matvec=Htheta)
 
-
-            lam0, eivec0 = LAS.eigsh(Heff, k=1, which='SA',tol=toleig) #, v0=psi_flat, tol=tol, ncv=N_min)
+            lam0, eivec0 = LAS.eigsh(Heff, k=1, which='SA', v0=guessTheta, tol=toleig) #, v0=psi_flat, tol=tol, ncv=N_min)
           
             u, s, vdag, chiTrunc = mps.SVD_trunc(eivec0.reshape(chis[jj]*dd,dd*chis[jj+2]),1e-10,40)
             print(f"[L] truncating {chis[jj]*dd}-{dd*chis[jj+2]} -> {chiTrunc}")
@@ -88,6 +88,9 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
             psi[jj+1] = ssv  # FIXME: actually unused? except maybe last step? 
 
             chis[jj+1] = chiTrunc
+
+            if jj < LL-2:
+                guessTheta = ncon([ssv,psi[jj+2]],[[-1,1,-2],[1,-4,-3]]) 
 
             #print(f"truncated {np.shape(Apsi[jj])}, {np.shape(Apsi[jj+1])}")
 
@@ -143,9 +146,10 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
             
             chis[jj] = chiTrunc
 
+            guessTheta = ncon([psi[jj-2],uss],[[-1,1,-2],[1,-4,-3]]) 
 
             # update right env 
-            re = envs.update_right_env(re, ssv, ww[jj], jj)
+            envs.update_right_env(re, ssv, ww[jj], jj)
 
             if lam0 < Emin : Emin = lam0
 
