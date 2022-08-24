@@ -1,4 +1,4 @@
-# Last modified: 2022/08/24 14:44:15
+# Last modified: 2022/08/24 17:21:44
 
 from __future__ import annotations
 
@@ -134,6 +134,9 @@ class myMPS:
     # Fancy stuff for performance saving
     __slots__ = ['LL','DD','MPS','chis','SV','SVinv','idx','normalized','canon','curr_form']
 
+
+
+
     def __init__(self, inputMPS: list=randMPS(LL=7, chi=20, d=2)):
       
         LL = len(inputMPS)
@@ -178,8 +181,6 @@ class myMPS:
     """    
 
 
-    # TODO: use QR for the first sweep
-        
     def bringCan(self, epsTrunc: float=1e-12, epsNorm: float=1e-12, chiMax: int = 40) -> tuple[str, str]:
 
         """ Brings input myMPS object to canonical form, returns ('form', 'lastSweep').
@@ -190,7 +191,7 @@ class myMPS:
         - chiMax: max bond dimension we truncate to 
         
         We 
-        1. perform a left SVD sweep (and drop final piece so the norm should be 1)
+        1. perform a left QR sweep (and drop final piece so the norm should be 1)
         2. perform a right SVD sweep after the left one, and truncate the SV below epsTrunc
         3. check that we're still normalized after truncating and if not 
         4. perform another left SVD sweep 
@@ -224,7 +225,6 @@ class myMPS:
         
         MPS = [m.transpose(0,2,1) for m in self.MPS]
 
-    
        
         ###############################################
         ###############################################
@@ -232,104 +232,15 @@ class myMPS:
         ###############################################
         ###############################################
         
-        """ 
-        OLD: first left sweep using SVD 
-        
-        logging.info("Performing a Left Sweep")
-        
+
+        _Alist = [1.]*LL  # This will hold our A matrices 
+        _Blist = [1.]*LL  # This will hold our B matrices
 
         chiA = [1]*(LL+1)
-        Slist = [np.array([1.])]*(LL+1)
-        Alist = [1.]*LL  # This will hold our A matrices for the LeftCanonical form
-
-        # First site:
-
-        Mtilde = MPS[0]
-        Mtr = np.reshape(Mtilde, (chiA[0]*DD, chiIn[1]))
-
-        U, S, Vdag = LA.svd(Mtr,full_matrices=0)
-
-        chiA[1] = np.size(S)
-        Slist[1] = S  
-
-        U = np.reshape(U,(chiA[0],DD,chiA[1]))
-
-
-        logging.info("First SVD:")
-        logging.info(f"{np.shape(MPS[0])} = {np.shape(U)} . {np.shape(S)} . {np.shape(Vdag)}")
-        logging.info(f"SV = {S}")
-        logging.info(f"chi_1 (nonzero SVs) = {np.size(S)}")
-
-
-        Alist[0] = U
-
-        
-        #Going to the next one, we need to make some products and some reshaping.
-        
-
-        for jj in range(1,LL-1):
-            pjj = jj+1  # The labels we're using start from 1, so for printing use this index
-            logging.info(f"Building leftcanon form for M[{pjj}]. First build Mtilde[{pjj}] = SV.Vdag.M[{pjj}]")
-
-            Mtilde = ncon([np.diag(S), Vdag, MPS[jj]], [[-1,1],[1,2],[2,-2,-3]])  
-
-            logging.info(f"Mtilde[{pjj}] = {np.shape(Mtilde)}  - Reshape it as chiA[{pjj}]*d, chiIn[{pjj}")
-            Mtr = np.reshape(Mtilde, (chiA[jj]*DD, chiIn[jj+1]))
-
-            U, S, Vdag = LA.svd(Mtr,full_matrices=0)  
-            
-            logging.info( f"SVD: {np.shape(Mtr)} = {np.shape(U)} . {np.shape(S)} . {np.shape(Vdag)}")
-            logging.info(f"chi_{pjj+2} (nonzero SVs) = {np.size(S)}")
-
-            chiA[jj+1] = np.size(S)
-
-            logging.debug(f"Sum SVDs on left {jj}: {sum(S)}")
-            
-            # Reshape U
-            U = np.reshape(U,(chiA[jj],DD,chiA[jj+1]))
-
-            Slist[jj+1] = S 
-            Alist[jj] = U
-
-
-        # Now the last site ("LL-1")
-        logging.info(f"Last site is just a vector, ie. tensor has shape {np.shape(MPS[LL-1])}")
-
-        Mtilde = ncon([np.diag(S),Vdag,MPS[LL-1]], [[-1,1],[1,2],[2,-2,-3]]) 
-
-        logging.info(f"Mtilde = {np.shape(Mtilde)}")
-
-        # We should still reshape here!
-        Mtr = np.reshape(Mtilde, (chiA[LL-1]*DD, chiIn[LL]))
-
-        U, S, Vdag = LA.svd(Mtr,full_matrices=0)  
-        
-        logging.info( f"SVD: {np.shape(Mtr)} = {np.shape(U)} . {np.shape(S)} . {np.shape(Vdag)}")
-        logging.info(f"chi_{LL} (nonzero SVs) = {np.size(S)}")
-
-        # I guess we can reshape the last simply as
-
-        logging.info(f"From {np.shape(U)} ")
-
-        U = np.reshape(U,(chiA[LL-1], DD, chiA[LL]))
-        logging.info(f"to {np.shape(U)} ")
-
-        Alist[LL-1] = U
-
-        # The last factor should just give the normalization
-        #tail = S @ Vdag 
-
-        logging.info(f"after L sweep chis: {chiA}")
-       
+        chiB = [1]*(LL+1)
     
-        """
-
-
-        chiA = [1]*(LL+1)
         Slist = [np.array([1.])]*(LL+1)
-        Alist = [1.]*LL  # This will hold our A matrices 
-        Blist = [1.]*LL  # This will hold our B matrices
-
+        
 
 
         # NEW: QR 
@@ -345,15 +256,13 @@ class myMPS:
             
             chiA[jj+1] = np.shape(q)[1]
 
-            Alist[jj] = np.reshape(q,(chiA[jj],DD,chiA[jj+1]))
+            _Alist[jj] = np.reshape(q,(chiA[jj],DD,chiA[jj+1]))
 
             #print(f"shape of r: {np.shape(r)}")
             #if jj == LL-1: print(f"final r sq: {r @ r}")
 
         # The last factor should just give the normalization
         #tail = S @ Vdag 
-
-
     
         ###############################################
         ###############################################
@@ -365,79 +274,37 @@ class myMPS:
 
         logging.info("Performing a right sweep")
 
-        chiB = [1]*(LL+1)
-    
-        # First site:
-
-        Mtilde = Alist[LL-1]
-        Mtr = np.reshape(Mtilde, (chiA[LL-1],chiB[LL]*DD ))
-
-        U, S, Vdag, sizeTruncS = SVD_trunc(Mtr, epsTrunc, chiMax)
-
-
-        chiB[LL-1] = sizeTruncS
-        Slist[LL-1] = S  
-        logging.debug(f"reshape {np.shape(Vdag)} into {chiB[LL-1]}x{DD}x{chiB[LL]}")
+        # For the first site only
+        u = np.array(1.).reshape(1,1)
+        s = np.array(1.).reshape(1)
         
-        Vdag = np.reshape(Vdag,(chiB[LL-1],DD,chiB[LL]))
+        for jj in range(LL-1,0,-1):
+        
+            Mtilde = ncon([_Alist[jj], u, np.diag(s)], [[-1,-2,1],[1,2],[2,-3]])  
 
-        Blist[LL-1] = Vdag
+            Mtr = np.reshape(Mtilde, (chiA[jj],chiB[jj+1]*DD ))
 
-        """ 
-        Going to the next one, we need to make some products and some reshaping.
-        We work with 
-        """
+            u, s, Vdag, sizeTruncS = SVD_trunc(Mtr, epsTrunc, chiMax)
 
-        for _jj in range(2,LL):
-            idx = LL-_jj  # starts at LL-2 , ends at 1  
-            pjj = idx+1  # The labels we're using start from 1, so for printing use this index
-            logging.debug(f"Building rightcanon form for M[{pjj}]. First build Mtilde[{pjj}] = M[{pjj}.U.S]")
-
-            Mtilde = ncon([Alist[idx], U, np.diag(S)], [[-1,-2,1],[1,2],[2,-3]])  
-
-            logging.debug(f"Mtilde[{pjj}] = {np.shape(Mtilde)}  - Reshape it as chiIn_{pjj} , chiB_{pjj+1}*d")
-            Mtr = np.reshape(Mtilde, (chiA[idx],chiB[idx+1]*DD ))
+            chiB[jj] = sizeTruncS
+            Slist[jj] = s
+            _Blist[jj] = np.reshape(Vdag,(chiB[jj],DD,chiB[jj+1]))
 
 
-            U, S, Vdag, sizeTruncS = SVD_trunc(Mtr, epsTrunc, chiMax)
+        # Now the last site ("0")
 
-            chiB[idx] = sizeTruncS
-            
-            Slist[idx] = S 
-
-            # Reshape Vdag
-
-            Vdag = np.reshape(Vdag,(chiB[idx],DD,chiB[idx+1]))
-
-            Blist[idx] = Vdag
-
-
-        # Now the last site ("L-1")
-        logging.debug(f"Last site is just a vector, ie. tensor has shape {np.shape(MPS[0])}")
-
-        Mtilde = ncon([Alist[0], U, np.diag(S)], [[-3,-1,1],[1,2],[2,-2]]) 
-
-        logging.debug(f"Mtilde = {np.shape(Mtilde)}")
+        Mtilde = ncon([_Alist[0], u, np.diag(s)], [[-3,-1,1],[1,2],[2,-2]]) 
 
         # We should still reshape here!
         Mtr = np.reshape(Mtilde, (chiB[0],chiB[1]*DD))
 
-        U, S, Vdag = svd(Mtr,full_matrices=0)  
+        u, s, Vdag = svd(Mtr,full_matrices=0)  
         
-        logging.debug( f"SVD: {np.shape(Mtr)} = {np.shape(U)} . {np.shape(S)} . {np.shape(Vdag)}")
-        logging.info(f"r[{LL}] (nonzero SVs) = {np.size(S)}")
-
-        # we can reshape the last simply as
-
-        logging.info(f"From {np.shape(Vdag)} ")
-        Vdag = np.reshape(Vdag,(chiB[0],DD,chiB[1]))
-        logging.info(f"to {np.shape(Vdag)} ")
-
-        Blist[0] = Vdag
+        _Blist[0] = np.reshape(Vdag,(chiB[0],DD,chiB[1]))
 
         # The last factor should give the normalization
 
-        tail = U @ S
+        tail = u @ s
 
         normsq = np.real_if_close(tail*np.conjugate(tail))
 
@@ -470,44 +337,39 @@ class myMPS:
         
         if self.normalized == 0:
             logging.info("State not normalized after R sweep: Performing a Left Sweep again")
+       
+            Vdag = np.array(1.).reshape(1,1)
+            s = np.array(1.).reshape(1)
             
-            Mtilde = Blist[0]
-            Mtr = np.reshape(Mtilde, (chiA[0]*DD, chiB[1]))
-
-            U, S, Vdag = svd(Mtr,full_matrices=0)
-
-            chiA[1] = np.size(S)
-            Slist[1] = S  
-
-            U = np.reshape(U,(chiA[0],DD,chiA[1]))
-
-            Alist[0] = U
-
-            for jj in range(1,LL-1):
+            for jj in range(0,LL):
         
-                Mtilde = ncon([np.diag(S), Vdag, Blist[jj]], [[-1,1],[1,2],[2,-2,-3]])  
+                Mtilde = ncon([np.diag(s), Vdag, _Blist[jj]], [[-1,1],[1,2],[2,-2,-3]])  
                 Mtr = np.reshape(Mtilde, (chiA[jj]*DD, chiB[jj+1]))
-                U, S, Vdag = svd(Mtr,full_matrices=0)  
-                chiA[jj+1] = np.size(S)
-                U = np.reshape(U,(chiA[jj],DD,chiA[jj+1]))
-                Slist[jj+1] = S 
-                Alist[jj] = U
+                u, s, Vdag = svd(Mtr,full_matrices=0)  
+                chiA[jj+1] = np.size(s)
+                _Alist[jj] = np.reshape(u,(chiA[jj],DD,chiA[jj+1]))
+                Slist[jj+1] = s
+                
 
-            Mtilde = ncon([np.diag(S),Vdag,Blist[LL-1]], [[-1,1],[1,2],[2,-2,-3]]) 
-            Mtr = np.reshape(Mtilde, (chiA[LL-1]*DD, chiB[LL]))
 
-            U, S, Vdag = svd(Mtr,full_matrices=0)  
+            # Mtilde = ncon([np.diag(S),Vdag,Blist[LL-1]], [[-1,1],[1,2],[2,-2,-3]]) 
+            # Mtr = np.reshape(Mtilde, (chiA[LL-1]*DD, chiB[LL]))
 
-            U = np.reshape(U,(chiA[LL-1], DD, chiA[LL]))
+            # U, S, Vdag = svd(Mtr,full_matrices=0)  
+
+            # U = np.reshape(U,(chiA[LL-1], DD, chiA[LL]))
         
-            Alist[LL-1] = U
+            # Alist[LL-1] = U
         
-            tail = S @ Vdag 
-
+            tail = s @ Vdag 
+        
             normsq = np.real_if_close(tail*np.conjugate(tail))
 
+            #Slist[LL] = 1.
 
-            logging.info(f"after 2ndL sweep chis: {chiA}")
+
+
+            logging.info(f"after 3nd sweep chis: {chiA}")
 
             # The sum of squared SVDs should be 1
             #print("delta (1-SVs^2):")
@@ -531,25 +393,16 @@ class myMPS:
                 raise ValueError("Something strange: after 3rd sweep chi's still changed")
 
 
-        ###############################################
-        ###############################################
-        #######    CANONICAL FORM    ##################
-        ###############################################
-        ###############################################
+        # Inverting SVs 
 
-
-
-        logging.info("Building Gamma-Lambda canonical form")
-
-        Sinvlist = Slist[:]
+        _Sinvlist = Slist[:]
 
         # here we invert SVs so be mindful 
-        logging.debug(f"Types:  {type(Slist)}, {type(Sinvlist)},{type(Slist[2])},{type(Sinvlist[2])}")
-        for ii in range(0,len(Slist)):
-            Sinvlist[ii] = [ss**(-1) for ss in Slist[ii]]
-            if np.isnan(Sinvlist[ii]).any():
+        for ii, sli in enumerate(Slist):
+            _Sinvlist[ii] = np.array([ss**(-1) for ss in sli])
+            if np.isnan(_Sinvlist[ii]).any():
                 raise ZeroDivisionError("NaN when inverting SV's !!!! ")
-        self.SVinv = Sinvlist
+        self.SVinv = _Sinvlist
         
 
 
@@ -558,9 +411,9 @@ class myMPS:
 
         # Revert indices to outside convention
         if curr_form == 'L':
-            self.MPS = [m.transpose(0,2,1) for m in Alist]
+            self.MPS = [m.transpose(0,2,1) for m in _Alist]
         elif curr_form == 'R':
-            self.MPS = [m.transpose(0,2,1) for m in Blist]
+            self.MPS = [m.transpose(0,2,1) for m in _Blist]
             
 
 
@@ -592,21 +445,17 @@ class myMPS:
             return self.curr_form
 
             
-        Glist = [1]*self.LL
-
-        # back to working convention TODO: might not need to if we ncon right
-        work = [m.transpose(0,2,1) for m in self.MPS]
+        Glist = [1.]*self.LL
 
         if self.curr_form == 'R':
             # Building the canonical form from the B's 
             # And rebuilding the B's from the Gammas 
 
-            Blist = work
-            Alist = Blist[:]
+            Blist = self.MPS
+            Alist = [1.]*self.LL
 
-            Glist[0] = Blist[0]
             for jj in range(0,self.LL):
-                Glist[jj] = ncon( [Blist[jj], np.diag(self.SVinv[jj+1])],[[-1,-2,1],[1,-3]])
+                Glist[jj] = ncon( [Blist[jj], np.diag(self.SVinv[jj+1])],[[-1,1,-3],[1,-2]])
                 Alist[jj] = ncon([ np.diag(self.SV[jj]), Glist[jj] ], [[-1,1],[1,-2,-3]])
 
 
@@ -615,13 +464,13 @@ class myMPS:
             # Building the canonical form from the A's 
             # And rebuilding the B's from the Gammas 
 
-            Alist = work
-            Blist = Alist[:]
+            Alist = self.MPS
+            Blist = [1.]*self.LL
 
     
             for jj in range(0,self.LL):
                 Glist[jj] = ncon( [np.diag(self.SVinv[jj]), Alist[jj]],[[-1,1],[1,-2,-3]])
-                Blist[jj] = ncon([ Glist[jj] , np.diag(self.SV[jj+1])], [[-1,-2,1], [1,-3]])
+                Blist[jj] = ncon([ Glist[jj] , np.diag(self.SV[jj+1])], [[-1,1,-3], [1,-2]])
 
         else: 
             raise ValueError("Wrong lastSweep")
@@ -634,19 +483,16 @@ class myMPS:
 
 
         if mode == 'L':
-            Alist = [m.transpose(0,2,1) for m in Alist]
             self.MPS = Alist
             self.curr_form = 'L'
             logging.info("Setting MPS matrices to LEFT form ")
             
         elif mode == 'R':
-            Blist = [m.transpose(0,2,1) for m in Blist]
             self.MPS = Blist
             self.curr_form = 'R'
             logging.info("Setting MPS matrices to RIGHT form ")
             
         elif mode == 'C':
-            Glist = [m.transpose(0,2,1) for m in Glist]
             self.MPS = Glist
             self.curr_form = 'C'
             logging.info("Setting MPS matrices to CANONICAL form ")
@@ -734,12 +580,14 @@ class myMPS:
         if abs(1.-self.getNorm()) > eps:
             print(f"state is not normalized, norm = {self.getNorm()}")
             self.normalized = False
+            return False
         else:
             self.normalized = True
+            return True
 
 
 
-    def expValOneSite(self, oper: np.array, site: int) -> complex:
+    def expValOneSite(self, oper: np.ndarray, site: int) -> complex:
 
         if(self.form != 'R'):
             self.set_form(mode='R')
