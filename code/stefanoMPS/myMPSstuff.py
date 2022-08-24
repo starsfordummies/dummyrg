@@ -1,9 +1,10 @@
-# Last modified: 2022/08/24 12:23:06
+# Last modified: 2022/08/24 14:44:15
 
 from __future__ import annotations
 
 import numpy as np
-from numpy import linalg as LA
+#from numpy import linalg as LA
+from numpy.linalg import svd, qr 
 from tensornetwork import ncon
 import logging
 
@@ -78,7 +79,7 @@ def truncSVs(S: np.ndarray, epsTrunc: float, chiMax: int) -> list[float]:
 def SVD_trunc(M: np.ndarray, epsTrunc: float, chiMax: int) -> tuple[np.ndarray,np.ndarray,np.ndarray, int]:
     """ Performs SVD and truncates at a given epsTrunc / chiMax """
 
-    u, s, Vdag = LA.svd(M,full_matrices=0)  
+    u, s, Vdag = svd(M,full_matrices=0)  
 
     Strunc = [sv for sv in s[:chiMax] if sv > epsTrunc]
     
@@ -167,6 +168,7 @@ class myMPS:
         self.SVinv = mSV  
         self.curr_form = 'x'  # By default we're not in any particular form 
         self.canon = False # by default not canon unless we say it is 
+        self.normalized = False
 
 
 
@@ -223,11 +225,15 @@ class myMPS:
         MPS = [m.transpose(0,2,1) for m in self.MPS]
 
     
+       
         ###############################################
         ###############################################
         ######### LEFT SWEEP       ####################
         ###############################################
         ###############################################
+        
+        """ 
+        OLD: first left sweep using SVD 
         
         logging.info("Performing a Left Sweep")
         
@@ -257,9 +263,9 @@ class myMPS:
 
         Alist[0] = U
 
-        """ 
-        Going to the next one, we need to make some products and some reshaping.
-        """
+        
+        #Going to the next one, we need to make some products and some reshaping.
+        
 
         for jj in range(1,LL-1):
             pjj = jj+1  # The labels we're using start from 1, so for printing use this index
@@ -316,6 +322,39 @@ class myMPS:
         logging.info(f"after L sweep chis: {chiA}")
        
     
+        """
+
+
+        chiA = [1]*(LL+1)
+        Slist = [np.array([1.])]*(LL+1)
+        Alist = [1.]*LL  # This will hold our A matrices 
+        Blist = [1.]*LL  # This will hold our B matrices
+
+
+
+        # NEW: QR 
+
+        r = np.array(1.).reshape(1,1)
+        for jj in range(0,LL):
+           
+            Mtilde = ncon([r, MPS[jj]], [[-1,1],[1,-2,-3]])  
+
+            Mtr = np.reshape(Mtilde, (chiA[jj]*DD, chiIn[jj+1]))
+
+            q,r  = qr(Mtr)  
+            
+            chiA[jj+1] = np.shape(q)[1]
+
+            Alist[jj] = np.reshape(q,(chiA[jj],DD,chiA[jj+1]))
+
+            #print(f"shape of r: {np.shape(r)}")
+            #if jj == LL-1: print(f"final r sq: {r @ r}")
+
+        # The last factor should just give the normalization
+        #tail = S @ Vdag 
+
+
+    
         ###############################################
         ###############################################
         ######### RIGHT SWEEP   + TRUNCATION  #########
@@ -326,35 +365,12 @@ class myMPS:
 
         logging.info("Performing a right sweep")
 
-        Blist = [1.]*LL  # This will hold our B matrices for the R sweep
         chiB = [1]*(LL+1)
     
         # First site:
 
         Mtilde = Alist[LL-1]
         Mtr = np.reshape(Mtilde, (chiA[LL-1],chiB[LL]*DD ))
-
-        """ TODO: I implemented a separate func for all this: 
-        U, S, Vdag = LA.svd(Mtr,full_matrices=0)
-
-        logging.info("First SVD:")
-        logging.info(f"{np.shape(Alist[LL-1])} = {np.shape(U)} . {np.shape(S)} . {np.shape(Vdag)}")
-        logging.info(f"SV = {S}")
-        logging.info(f"chi_{LL} (nonzero SVs) = {np.size(S)}")  
-
-        
-        # Truncating the SVs at epsTrunc/chiMax
-        S = truncSVs(S, epsTrunc, chiMax)
-        sizeTruncS = np.size(S)
-
-        logging.info(f"chi_{LL} (truncated SVs) = {sizeTruncS}")
-
-        # If we truncated the SVs, we should truncate accordingly the cols of U
-        # and the rows of Vdag
-
-        U = U[:,:sizeTruncS]
-        Vdag = Vdag[:sizeTruncS,:]
-        """
 
         U, S, Vdag, sizeTruncS = SVD_trunc(Mtr, epsTrunc, chiMax)
 
@@ -382,28 +398,6 @@ class myMPS:
             logging.debug(f"Mtilde[{pjj}] = {np.shape(Mtilde)}  - Reshape it as chiIn_{pjj} , chiB_{pjj+1}*d")
             Mtr = np.reshape(Mtilde, (chiA[idx],chiB[idx+1]*DD ))
 
-            
-            """
-            U, S, Vdag = LA.svd(Mtr,full_matrices=0)  
-            
-            logging.debug( f"SVD: {np.shape(Mtr)} = {np.shape(U)} . {np.shape(S)} . {np.shape(Vdag)}")
-            logging.info(f"chi_{pjj} (nonzero SVs) = {np.size(S)}")
-
-
-            #Truncate here as well 
-            S = truncSVs(S, epsTrunc, chiMax)
-
-            sizeTruncS = np.size(S)
-            
-
-            logging.info(f"chi_{pjj} (truncated SVs) = {sizeTruncS}")
-
-            # If we truncated the SVs, we should truncate accordingly the cols of U
-            # and the rows of Vdag
-
-            U = U[:,:sizeTruncS]
-            Vdag = Vdag[:sizeTruncS,:]
-            """ 
 
             U, S, Vdag, sizeTruncS = SVD_trunc(Mtr, epsTrunc, chiMax)
 
@@ -428,7 +422,7 @@ class myMPS:
         # We should still reshape here!
         Mtr = np.reshape(Mtilde, (chiB[0],chiB[1]*DD))
 
-        U, S, Vdag = LA.svd(Mtr,full_matrices=0)  
+        U, S, Vdag = svd(Mtr,full_matrices=0)  
         
         logging.debug( f"SVD: {np.shape(Mtr)} = {np.shape(U)} . {np.shape(S)} . {np.shape(Vdag)}")
         logging.info(f"r[{LL}] (nonzero SVs) = {np.size(S)}")
@@ -480,7 +474,7 @@ class myMPS:
             Mtilde = Blist[0]
             Mtr = np.reshape(Mtilde, (chiA[0]*DD, chiB[1]))
 
-            U, S, Vdag = LA.svd(Mtr,full_matrices=0)
+            U, S, Vdag = svd(Mtr,full_matrices=0)
 
             chiA[1] = np.size(S)
             Slist[1] = S  
@@ -493,7 +487,7 @@ class myMPS:
         
                 Mtilde = ncon([np.diag(S), Vdag, Blist[jj]], [[-1,1],[1,2],[2,-2,-3]])  
                 Mtr = np.reshape(Mtilde, (chiA[jj]*DD, chiB[jj+1]))
-                U, S, Vdag = LA.svd(Mtr,full_matrices=0)  
+                U, S, Vdag = svd(Mtr,full_matrices=0)  
                 chiA[jj+1] = np.size(S)
                 U = np.reshape(U,(chiA[jj],DD,chiA[jj+1]))
                 Slist[jj+1] = S 
@@ -502,7 +496,7 @@ class myMPS:
             Mtilde = ncon([np.diag(S),Vdag,Blist[LL-1]], [[-1,1],[1,2],[2,-2,-3]]) 
             Mtr = np.reshape(Mtilde, (chiA[LL-1]*DD, chiB[LL]))
 
-            U, S, Vdag = LA.svd(Mtr,full_matrices=0)  
+            U, S, Vdag = svd(Mtr,full_matrices=0)  
 
             U = np.reshape(U,(chiA[LL-1], DD, chiA[LL]))
         
@@ -531,6 +525,7 @@ class myMPS:
                     
         
             curr_form = 'L'
+            print("3 sweeps")
 
             if( chiA != chiB): 
                 raise ValueError("Something strange: after 3rd sweep chi's still changed")
@@ -614,6 +609,8 @@ class myMPS:
                 Glist[jj] = ncon( [Blist[jj], np.diag(self.SVinv[jj+1])],[[-1,-2,1],[1,-3]])
                 Alist[jj] = ncon([ np.diag(self.SV[jj]), Glist[jj] ], [[-1,1],[1,-2,-3]])
 
+
+
         elif self.curr_form == 'L':
             # Building the canonical form from the A's 
             # And rebuilding the B's from the Gammas 
@@ -633,10 +630,7 @@ class myMPS:
         """ 
         Done. Now for output transpose back all matrices 
             from (vL,ph,vR) to (vL,vR,ph)  
-        """
-
-
-      
+        """      
 
 
         if mode == 'L':
@@ -644,16 +638,19 @@ class myMPS:
             self.MPS = Alist
             self.curr_form = 'L'
             logging.info("Setting MPS matrices to LEFT form ")
-        elif mode == 'R' or mode == 'LR': #for backwards compatibility
+            
+        elif mode == 'R':
             Blist = [m.transpose(0,2,1) for m in Blist]
             self.MPS = Blist
             self.curr_form = 'R'
             logging.info("Setting MPS matrices to RIGHT form ")
+            
         elif mode == 'C':
             Glist = [m.transpose(0,2,1) for m in Glist]
             self.MPS = Glist
             self.curr_form = 'C'
             logging.info("Setting MPS matrices to CANONICAL form ")
+            
         else:
             logging.error("Wrong form specified, leaving undetermined ")
             self.curr_form = 'x'
