@@ -12,7 +12,7 @@ def checkIdMatrix(ainp: np.array, epstol = 1e-14) -> bool:
             print(f"identity, size = {size}")
             return True
         else:
-            print(f"Square but not id, difference = {np.abs(a - np.eye(size))}")
+            print(f"Square but not id, difference Max = {np.max(np.abs(a - np.eye(size)))}")
             return False
 
 
