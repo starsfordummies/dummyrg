@@ -44,9 +44,6 @@ def applyMPOtoMPS( inMPO: mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
         temp = ncon( [Mj, Wj], [[-1,-3,1],[-2,-4,-5,1]] )
         newMPS[jj] = temp.reshape(inMPS.chis[jj]*inMPO.chis[jj], inMPS.chis[jj+1]*inMPO.chis[jj+1], inMPS.DD)
 
-    # Sanity check 
-    #if any(n.any() == None for n in newMPS): raise ValueError("didn't build all elems of newMPS")
-    
     MPOtimesMPS = mps.myMPS(newMPS)
 
     return MPOtimesMPS

@@ -11,7 +11,7 @@ from isingMPO import IsingMPO
 from oned_ising_tenpy import example_DMRG_tf_ising_finite
 
 
-LLL = 20
+LLL = 10
 
 # maximum chi 
 chiM = 40

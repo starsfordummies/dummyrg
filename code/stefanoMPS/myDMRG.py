@@ -49,10 +49,24 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
         # ===>>===>     (L-R sweep )
         for jj in range(0,LL-1): #, Aj in enumerate(Apsi[:-1]):
             print(f"[L] ncon L({jj}) W({jj}) W({jj+1}) R({jj+2}) updating A[{jj}] B[{jj+1}]")
-            Heff = ncon([le[jj], ww[jj], ww[jj+1], re[jj+2]],
-            [[-1,1,-5],[1,2,-2,-6],[2,3,-3,-7],[-4,3,-8]])
+            #Heff = ncon([le[jj], ww[jj], ww[jj+1], re[jj+2]],
+            #[[-1,1,-5],[1,2,-2,-6],[2,3,-3,-7],[-4,3,-8]])
 
-            Heff = Heff.reshape( chis[jj]*dd*dd*chis[jj+2], chis[jj]*dd*dd*chis[jj+2])
+            #Heff = Heff.reshape( chis[jj]*dd*dd*chis[jj+2], chis[jj]*dd*dd*chis[jj+2])
+
+
+            dimH = chis[jj]*dd*dd*chis[jj+2]
+            def Htheta(th: np.ndarray):
+                theta = th.reshape(chis[jj], dd, dd, chis[jj+2])
+                #print(np.shape([le[jj-1]), ww[jj-1], theta))
+                Lwtheta = ncon([le[jj], ww[jj], theta],[[-1,2,3],[2,-2,-3,4],[3,4,-4,-5]])
+                wR = ncon([ww[jj+1],re[jj+2]], [[-2,2,-4,-5],[-1,2,-3]])
+
+                return ncon([Lwtheta,wR], [[-1,2,-2,3,4],[-4,2,4,-3,3]]).reshape(dimH)
+
+
+            Heff = LAS.LinearOperator((dimH,dimH), matvec=Htheta)
+
 
             lam0, eivec0 = LAS.eigsh(Heff, k=1, which='SA',tol=toleig) #, v0=psi_flat, tol=tol, ncv=N_min)
           
@@ -92,8 +106,8 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
 
         for jj in range(LL-2,0,-1): # in enumerate(Apsi[1:]):
             print(f"[R] ncon L({jj-1}) W({jj-1}) W({jj}) R({jj+1}) updating A[{jj-1}] B[{jj}]")
-            Heff = ncon([le[jj-1], ww[jj-1], ww[jj], re[jj+1]],
-            [[-1,1,-5],[1,2,-2,-6],[2,3,-3,-7],[-4,3,-8]])
+            #Heff = ncon([le[jj-1], ww[jj-1], ww[jj], re[jj+1]],
+            #[[-1,1,-5],[1,2,-2,-6],[2,3,-3,-7],[-4,3,-8]])
             
             #Heff = Heff.reshape( chis[jj-1]*dd*dd*chis[jj+1], chis[jj-1]*dd*dd*chis[jj+1])
 

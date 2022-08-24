@@ -1,4 +1,4 @@
-# Last modified: 2022/08/23 18:14:39
+# Last modified: 2022/08/24 12:23:06
 
 from __future__ import annotations
 
@@ -584,6 +584,9 @@ class myMPS:
         - mode: 'L' , 'R' or 'C' for left-can, right-can or mixed (gamma-lambda) canon form
 
         """
+        if not self.normalized:
+            self.bringCan()
+            
         if not self.canon:
             #print("MPS not canonical, bringing to canon form")
             self.bringCan()
@@ -727,6 +730,8 @@ class myMPS:
         norm = voverlap(self, self, conjugate=True)
         if np.imag(norm)/np.real(norm) < 1e-15: norm = np.real(norm)
         return norm 
+
+
 
     def checkNormalized(self, eps=1e-12) -> bool:
         if abs(1.-self.getNorm()) > eps:
