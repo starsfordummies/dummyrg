@@ -8,6 +8,7 @@ from scipy import linalg as LA
 import scipy.sparse.linalg as LAS
 
 
+
 def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
 
     if inMPO.DD != inMPS.DD: 
@@ -94,7 +95,19 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
             Heff = ncon([le[jj-1], ww[jj-1], ww[jj], re[jj+1]],
             [[-1,1,-5],[1,2,-2,-6],[2,3,-3,-7],[-4,3,-8]])
             
-            Heff = Heff.reshape( chis[jj-1]*dd*dd*chis[jj+1], chis[jj-1]*dd*dd*chis[jj+1])
+            #Heff = Heff.reshape( chis[jj-1]*dd*dd*chis[jj+1], chis[jj-1]*dd*dd*chis[jj+1])
+
+            dimH = chis[jj-1]*dd*dd*chis[jj+1]
+            def Htheta(th: np.ndarray):
+                theta = th.reshape(chis[jj-1], dd, dd, chis[jj+1])
+                #print(np.shape([le[jj-1]), ww[jj-1], theta))
+                Lwtheta = ncon([le[jj-1], ww[jj-1], theta],[[-1,2,3],[2,-2,-3,4],[3,4,-4,-5]])
+                wR = ncon([ww[jj],re[jj+1]], [[-2,2,-4,-5],[-1,2,-3]])
+
+                return ncon([Lwtheta,wR], [[-1,2,-2,3,4],[-4,2,4,-3,3]]).reshape(dimH)
+
+
+            Heff = LAS.LinearOperator((dimH,dimH), matvec=Htheta)
 
             lam0, eivec0 = LAS.eigsh(Heff, k=1, which='SA',tol=toleig) #, v0=psi_flat, tol=tol, ncv=N_min)
             u, s, vdag, chiTrunc = mps.SVD_trunc(eivec0.reshape(chis[jj-1]*dd,dd*chis[jj+1]),1e-10,40)
