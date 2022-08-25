@@ -1,4 +1,4 @@
-# Last modified: 2022/08/24 17:21:44
+# Last modified: 2022/08/25 11:06:23
 
 from __future__ import annotations
 
@@ -308,18 +308,6 @@ class myMPS:
 
         normsq = np.real_if_close(tail*np.conjugate(tail))
 
-        deltas=  [1.-np.sum(sss**2) for sss in Slist]
-        deltasAreSmall = [d < epsTrunc for d in deltas]
-   
-        if np.abs( normsq - 1.) < epsNorm and any(deltasAreSmall):
-            self.normalized = 1 
-        else:
-            self.normalized = 0 
-   
-            
-        
-        logging.info(f"SVs = {Slist}")
-
         self.chis = chiB
         self.SV = Slist
 
@@ -329,6 +317,12 @@ class myMPS:
         
         curr_form = 'R'
 
+        
+        if np.abs( normsq - 1.) < epsNorm and self.checkSVsAreOne():
+            self.normalized = 1 
+        else:
+            self.normalized = 0 
+   
 
      
         """
@@ -349,38 +343,17 @@ class myMPS:
                 chiA[jj+1] = np.size(s)
                 _Alist[jj] = np.reshape(u,(chiA[jj],DD,chiA[jj+1]))
                 Slist[jj+1] = s
-                
-
-
-            # Mtilde = ncon([np.diag(S),Vdag,Blist[LL-1]], [[-1,1],[1,2],[2,-2,-3]]) 
-            # Mtr = np.reshape(Mtilde, (chiA[LL-1]*DD, chiB[LL]))
-
-            # U, S, Vdag = svd(Mtr,full_matrices=0)  
-
-            # U = np.reshape(U,(chiA[LL-1], DD, chiA[LL]))
-        
-            # Alist[LL-1] = U
         
             tail = s @ Vdag 
         
             normsq = np.real_if_close(tail*np.conjugate(tail))
 
-            #Slist[LL] = 1.
-
 
 
             logging.info(f"after 3nd sweep chis: {chiA}")
 
-            # The sum of squared SVDs should be 1
-            #print("delta (1-SVs^2):")
-            deltas = [1.-np.sum(sss**2) for sss in Slist]
-            deltasAreSmall = [d < epsTrunc for d in deltas]
-            if any(deltasAreSmall): 
-                logging.info("SVDs don't look too normalized, deltas = ")
-                logging.info(deltas)
-
             logging.info(f"Final Norm = {normsq}")
-            if abs(1.-normsq < epsTrunc) and any(deltasAreSmall): 
+            if abs(1.-normsq < epsTrunc) and self.checkSVsAreOne(epsTrunc): 
                 self.normalized = 1
             else:
                 logging.warning(f"Warning: state is not normalized even after 3 sweeps, |1-norm| = {abs(1.-normsq)} ")
@@ -476,11 +449,6 @@ class myMPS:
             raise ValueError("Wrong lastSweep")
 
 
-        """ 
-        Done. Now for output transpose back all matrices 
-            from (vL,ph,vR) to (vL,vR,ph)  
-        """      
-
 
         if mode == 'L':
             self.MPS = Alist
@@ -502,6 +470,8 @@ class myMPS:
             self.curr_form = 'x'
         
         return self.curr_form
+
+
 
 
 
@@ -549,9 +519,7 @@ class myMPS:
             if numSVs == 0: numSVs = np.max(self.chis)
             logging.warning(f"Putting in canonical form and truncating at {numSVs}")
             self.bringCan(chiMax = numSVs, epsTrunc=1e-14)
-
         
-        #TODO: check if the formula is correct, factors sqrts etc
         ents = []
         for lambdas in self.SV:
             #si = sum([-lam*np.log(lam) for lam in lambdas])
@@ -585,6 +553,19 @@ class myMPS:
             self.normalized = True
             return True
 
+
+    def checkSVsAreOne(self, eps=1e-12) -> bool:
+
+        # The sum of squared SVDs should be 1
+        deltas = [abs(1.-np.sum(sss**2)) for sss in self.SV]
+        deltasAreLarge = [d > eps for d in deltas]
+        if any(deltasAreLarge): 
+            logging.warning(f"SVDs don't look too normalized, deltaMax = {np.max(deltas)} ")
+            #logging.warning(deltas)
+            self.normalized = False
+            return False
+        else:
+            return True
 
 
     def expValOneSite(self, oper: np.ndarray, site: int) -> complex:

@@ -52,8 +52,6 @@ def applyMPOtoMPS( inMPO: mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
 
 def expValMPO(psi: mps.myMPS, oper: mpo.myMPO ) -> complex:
 
-        #from applMPOMPS import applyMPOtoMPS
-
         psi.checkNormalized()
         if not psi.canon: psi.bringCan(epsTrunc=1e-12)
         if not psi.normalized: psi.bringCan(epsTrunc=1e-12)
