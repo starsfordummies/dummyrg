@@ -1,3 +1,4 @@
+from lzma import CHECK_ID_MAX
 import myMPSstuff as mps 
 import myMPOstuff as mpo
 import myEnvironmentsMPO as envs
@@ -6,6 +7,7 @@ import numpy as np
 from tensornetwork import ncon
 from scipy import linalg as LA 
 import scipy.sparse.linalg as LAS
+from matrixUtils import checkIdMatrix
 
 
 
@@ -37,7 +39,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
     psi = inMPS.MPS
     dd = inMPO.DD
 
-    nsweeps = 5
+    nsweeps = 10
 
     toleig = 1e-6
 
@@ -57,7 +59,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
 
 
             dimH = chis[jj]*dd*dd*chis[jj+2]
-            def Htheta(th: np.ndarray):
+            def HthetaL(th: np.ndarray):
                 theta = th.reshape(chis[jj], dd, dd, chis[jj+2])
                 #print(np.shape([le[jj-1]), ww[jj-1], theta))
                 Lwtheta = ncon([le[jj], ww[jj], theta],[[-1,2,3],[2,-2,-3,4],[3,4,-4,-5]])
@@ -66,25 +68,25 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
                 return ncon([Lwtheta,wR], [[-1,2,-2,3,4],[-4,2,4,-3,3]]).reshape(dimH)
 
 
-            Heff = LAS.LinearOperator((dimH,dimH), matvec=Htheta)
+            Heff = LAS.LinearOperator((dimH,dimH), matvec=HthetaL)
 
             lam0, eivec0 = LAS.eigsh(Heff, k=1, which='SA', v0=guessTheta, tol=toleig) #, v0=psi_flat, tol=tol, ncv=N_min)
           
             u, s, vdag, chiTrunc = mps.SVD_trunc(eivec0.reshape(chis[jj]*dd,dd*chis[jj+2]),1e-10,40)
             print(f"[L] truncating {chis[jj]*dd}-{dd*chis[jj+2]} -> {chiTrunc}")
             
+            print("Checking unitarity of U: ncon u udag gives")
+            print(np.round( np.real_if_close(ncon([u, np.conj(u)],[[1,-1],[1,-2]])), 12 ))
             #ss = LA.sqrtm(np.diag(s))
-            ss = np.diag(s) / LA.norm(s)
+            ss = np.diag(s) #/ LA.norm(s)
 
             print(f"Norms: {LA.norm(u)}, {LA.norm(ss)}, {LA.norm(vdag)}")
-            #uss = (u @ ss).reshape(chis[jj],chiTrunc,dd)
-            ssv = (ss @ vdag).reshape(chiTrunc,chis[jj+2],dd)
+          
+            u = u.reshape(chis[jj],dd,chiTrunc).transpose(0,2,1)
+            ssv = (ss @ vdag).reshape(chiTrunc,dd,chis[jj+2]).transpose(0,2,1)
 
-            #FIXME HACK 
-            uss = u.reshape(chis[jj],chiTrunc,dd)
-            #ssv = vdag.reshape(chiTrunc,chis[jj+2],dd) 
 
-            psi[jj] = uss
+            psi[jj] = u
             psi[jj+1] = ssv  # FIXME: actually unused? except maybe last step? 
 
             chis[jj+1] = chiTrunc
@@ -97,10 +99,12 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
             print(f"Updated norm: {inMPS.getNorm()}")
 
             # update left env 
-            le = envs.update_left_env(le, uss, ww[jj], jj)
+            le = envs.update_left_env(le, u, ww[jj], jj)
  
         print( [np.shape(i) for i in le])
-
+        
+        #inMPS.bringCan()
+        #inMPS.set_form("L")
 
         # <====<<====    (R-L sweep)
         Emin = 0.
@@ -115,7 +119,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
             #Heff = Heff.reshape( chis[jj-1]*dd*dd*chis[jj+1], chis[jj-1]*dd*dd*chis[jj+1])
 
             dimH = chis[jj-1]*dd*dd*chis[jj+1]
-            def Htheta(th: np.ndarray):
+            def HthetaR(th: np.ndarray) -> np.ndarray:
                 theta = th.reshape(chis[jj-1], dd, dd, chis[jj+1])
                 #print(np.shape([le[jj-1]), ww[jj-1], theta))
                 Lwtheta = ncon([le[jj-1], ww[jj-1], theta],[[-1,2,3],[2,-2,-3,4],[3,4,-4,-5]])
@@ -124,32 +128,28 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
                 return ncon([Lwtheta,wR], [[-1,2,-2,3,4],[-4,2,4,-3,3]]).reshape(dimH)
 
 
-            Heff = LAS.LinearOperator((dimH,dimH), matvec=Htheta)
+            Heff = LAS.LinearOperator(shape=(dimH,dimH), matvec=HthetaR)
 
             lam0, eivec0 = LAS.eigsh(Heff, k=1, which='SA',tol=toleig) #, v0=psi_flat, tol=tol, ncv=N_min)
             u, s, vdag, chiTrunc = mps.SVD_trunc(eivec0.reshape(chis[jj-1]*dd,dd*chis[jj+1]),1e-10,40)
 
             print(f"[R] truncating {chis[jj-1]*dd} {dd*chis[jj+1]} -> {chiTrunc}")
             #ss = LA.sqrtm(np.diag(s))
-            ss = np.diag(s) / LA.norm(s)
+            ss = np.diag(s) #/ LA.norm(s)
 
 
-            uss = (u @ ss).reshape(chis[jj-1],chiTrunc,dd)  
-            #ssv = (ss @ vdag).reshape(chiTrunc,chis[jj],dd) 
-
-            #FIXME HACK
-            #uss = u.reshape(chis[jj-2],chiTrunc,dd)
-            ssv = vdag.reshape(chiTrunc,chis[jj+1],dd) 
+            uss = (u @ ss).reshape(chis[jj-1],dd,chiTrunc).transpose(0,2,1)  
+            vdag = vdag.reshape(chiTrunc,dd,chis[jj+1]).transpose(0,2,1)
 
             psi[jj-1] = uss
-            psi[jj] = ssv
+            psi[jj] = vdag
             
             chis[jj] = chiTrunc
 
             guessTheta = ncon([psi[jj-2],uss],[[-1,1,-2],[1,-4,-3]]) 
 
             # update right env 
-            envs.update_right_env(re, ssv, ww[jj], jj)
+            envs.update_right_env(re, vdag, ww[jj], jj)
 
             if lam0 < Emin : Emin = lam0
 
