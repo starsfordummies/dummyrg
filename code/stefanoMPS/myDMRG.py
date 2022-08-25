@@ -1,4 +1,3 @@
-from lzma import CHECK_ID_MAX
 import myMPSstuff as mps 
 import myMPOstuff as mpo
 import myEnvironmentsMPO as envs
@@ -7,7 +6,7 @@ import numpy as np
 from tensornetwork import ncon
 from scipy import linalg as LA 
 import scipy.sparse.linalg as LAS
-from matrixUtils import checkIdMatrix
+#from myUtils import checkIdMatrix
 
 
 

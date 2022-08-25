@@ -1,4 +1,4 @@
-# Last modified: 2022/07/27 15:21:43
+# Last modified: 2022/08/25 16:00:08
 
 import numpy as np
 import logging
@@ -47,10 +47,10 @@ class myMPO:
     chis(bond dims), 
     MPO (the matrices)
     """
-
+    
     __slots__ = ['LL','DD','MPO','chis']
     
-    def __init__(self, inputWs : list=randMPO(7)):
+    def __init__(self, inputWs : list[np.ndarray] = randMPO(7)):
       
         LL = len(inputWs)
 

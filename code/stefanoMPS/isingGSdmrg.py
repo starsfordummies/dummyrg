@@ -10,6 +10,9 @@ import myDMRG as dmrg
 from isingMPO import IsingMPO
 from oned_ising_tenpy import example_DMRG_tf_ising_finite
 
+import cProfile
+import pstats
+
 
 LLL = 20
 
@@ -31,10 +34,17 @@ Hising = mpo.myMPO(IsingMPO(LLL, J=1., g=gg))
 
 Emin1 = mpomps.expValMPO(psi, Hising)
 
-Emin2 = dmrg.findGS_DMRG(Hising, psi)
+
+with cProfile.Profile() as pr:
+    
+    Emin2 = dmrg.findGS_DMRG(Hising, psi)
 
 print(f"norm3 = {psi.getNorm()}")
 Emin3 = mpomps.expValMPO(psi, Hising)
 print(f"norm4 = {psi.getNorm()}")
 
 print(f"Before DMRG: {Emin1} \n After DMRG: {Emin2} \n DMRG+Norm: {Emin3} \n Tenpy: {E_tenpy}")
+
+stats = pstats.Stats(pr)
+stats.sort_stats(pstats.SortKey.TIME)
+stats.print_stats()

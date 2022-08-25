@@ -1,7 +1,7 @@
 import numpy as np 
 from ncon import ncon 
 
-def checkIdMatrix(ainp: np.array, epstol = 1e-14) -> bool:
+def checkIdMatrix(ainp: np.ndarray, epstol = 1e-14) -> bool:
     """Checks if an array is an identity matrix (within machine precision)"""
 
     a = np.array(ainp)
@@ -18,17 +18,17 @@ def checkIdMatrix(ainp: np.array, epstol = 1e-14) -> bool:
 
 
 # TODO:
-def myReshape(idx: dict, tensor: np.array):
+def myReshape(idx: dict, tensor: np.ndarray):
     pass
 
-def alleq(tensor1: np.array, tensor2:np.array) -> bool:
-  if np.shape(tensor1) != np.shape(tensor2): return False
+def alleq(tensor1: np.ndarray, tensor2:np.ndarray) -> np.bool_:
+  if np.shape(tensor1) != np.shape(tensor2): return np.False_
 
   return np.ravel(np.isclose(tensor1,tensor2)).all()
 
 
 
-def build_perms(tensor: np.array, n: int, perm: tuple, listPerms: list) -> list:
+def build_perms(tensor: np.ndarray, n: int, perm: list, listPerms: list) -> list:
     
     outList = listPerms
 
@@ -59,22 +59,25 @@ def build_perms(tensor: np.array, n: int, perm: tuple, listPerms: list) -> list:
     
 
 
-def equal_up_to_perm(t1: np.array, t2: np.array) -> bool:
-  # First check if shapes are different
-  s1 = np.shape(t1)
-  s2 = np.shape(t2)
-  print(s1,s2)
-  if sum(s1) != sum(s2):
-    print("Cannot possibly reshape one into another, quitting")
-    return False
-  else:
-    print(f"Shapes = {s1}, {s2}, checking..")
+def equal_up_to_perm(t1: np.ndarray, t2: np.ndarray) -> bool:
+    # First check if shapes are different
+    s1 = np.shape(t1)
+    s2 = np.shape(t2)
+    print(s1,s2)
+    if sum(s1) != sum(s2):
+        print("Cannot possibly reshape one into another, quitting")
+        return False
+    else:
+        print(f"Shapes = {s1}, {s2}, checking..")
 
-  # if shapes are different, it should give a hint on how to reshape..
+    # if shapes are different, it should give a hint on how to reshape..
 
-  if alleq(t1,t2):
-    print("Arrays are equal")
-    return True 
+    if alleq(t1,t2):
+        print("Arrays are equal")
+        return True 
+    else: 
+        return False
+
 
 
 """ Example usage: 
@@ -93,12 +96,11 @@ def equal_up_to_perm(t1: np.array, t2: np.array) -> bool:
 """
 
 
-
-
-def sncon(listArr, listInd):
+def sncon(listArr, listInd) -> np.ndarray:
     try:
         return ncon(listArr,listInd)
     except ValueError:
         print(f"wrong contraction")
-        print(f"shapes: [{np.shape(a)}], [{np.shape(b)}]")
+        print(f"shapes: [{[np.shape(a) for a in listArr]}]")
         print(f"contrs: {listInd}")
+        return np.array(np.nan)

@@ -1,11 +1,11 @@
-# Last modified: 2022/08/25 11:48:56
+# Last modified: 2022/08/25 15:59:05
 
 from __future__ import annotations
 
 import numpy as np
 #from numpy import linalg as LA
 from numpy.linalg import svd, qr 
-from tensornetwork import ncon
+from myUtils import sncon as ncon
 import logging
 
 # MPS Indices convention:
@@ -62,28 +62,13 @@ def bigEntState(LL: int=10) -> list[np.ndarray]:
     return outMPS
 
 
-"""
-# TODO: maybe unnecessary now 
-def truncSVs(S: np.ndarray, epsTrunc: float, chiMax: int) -> list[float]:
-    # Truncating the SVs at epsTrunc/chiMax
-    # We assume that the input S is sorted in descending order (should be the case for SVD output)
-    Strunc = [sv for sv in S[:chiMax] if sv > epsTrunc]
-
-    return np.array(Strunc)
-"""
-
 
 def SVD_trunc(M: np.ndarray, epsTrunc: float, chiMax: int) -> tuple[np.ndarray,np.ndarray,np.ndarray, int]:
     """ Performs SVD and truncates at a given epsTrunc / chiMax """
 
-    u, s, Vdag = svd(M,full_matrices=0)  
+    u, s, Vdag = svd(M,full_matrices=False)  
 
     Strunc = [sv for sv in s[:chiMax] if sv > epsTrunc]
-    
-    # if len(S) - len(Strunc) > 3:  
-    #     print(f"DEBUG: {S} vs {Strunc}")
-    # else:
-    #     print(len(S), len(Strunc))
     
     s = np.array(Strunc)
     sizeTruncS = np.size(s)
@@ -134,7 +119,7 @@ class myMPS:
 
 
 
-    def __init__(self, inputMPS: list[np.ndarray]=randMPS(LL=7, chi=20, d=2)):
+    def __init__(self, inputMPS: list[np.ndarray] = randMPS(LL=7, chi=20, d=2)):
       
         LL = len(inputMPS)
      
@@ -149,12 +134,12 @@ class myMPS:
         #Physical dimension - we assume it to be constant for the whole MPS
         DD = np.shape(inputMPS[1])[idx['ph']]  # not the most elegant way to extract it but eh..
 
-        self.MPS = inputMPS  
+        self.MPS: list[np.ndarray] = inputMPS  
 
         mChi = [ np.shape(mm)[idx['vL']] for mm in inputMPS ]
         mChi.append(np.shape(inputMPS[-1])[idx['vR']])
       
-        mSV = [1] * (LL+1) # Empty for now 
+        mSV = [np.array(1.)] * (LL+1) # Empty for now 
 
         logging.info(f"MPS with length {LL} and physical d={DD}")
         logging.info(f"chi {mChi}")
@@ -178,7 +163,7 @@ class myMPS:
     """    
 
 
-    def bringCan(self, epsTrunc: float=1e-12, epsNorm: float=1e-12, chiMax: int = 40) -> tuple[str, str]:
+    def bringCan(self, epsTrunc: float=1e-12, epsNorm: float=1e-12, chiMax: int = 40) -> str:
 
         """ Brings input myMPS object to canonical form, returns ('form', 'lastSweep').
 
@@ -230,13 +215,13 @@ class myMPS:
         ###############################################
         
 
-        _Alist = [1.]*LL  # This will hold our A matrices 
-        _Blist = [1.]*LL  # This will hold our B matrices
+        _Alist = [np.array(1.)]*LL  # This will hold our A matrices 
+        _Blist = [np.array(1.)]*LL  # This will hold our B matrices
 
         chiA = [1]*(LL+1)
         chiB = [1]*(LL+1)
     
-        Slist = [np.array([1.])]*(LL+1)
+        _Slist: list = [np.array([1.])]*(LL+1)
         
 
 
@@ -284,7 +269,7 @@ class myMPS:
             u, s, Vdag, sizeTruncS = SVD_trunc(Mtr, epsTrunc, chiMax)
 
             chiB[jj] = sizeTruncS
-            Slist[jj] = s
+            _Slist[jj] = s
             _Blist[jj] = np.reshape(Vdag,(chiB[jj],DD,chiB[jj+1]))
 
 
@@ -295,7 +280,7 @@ class myMPS:
         # We should still reshape here!
         Mtr = np.reshape(Mtilde, (chiB[0],chiB[1]*DD))
 
-        u, s, Vdag = svd(Mtr,full_matrices=0)  
+        u, s, Vdag = svd(Mtr,full_matrices=False)  
         
         _Blist[0] = np.reshape(Vdag,(chiB[0],DD,chiB[1]))
 
@@ -306,10 +291,9 @@ class myMPS:
         normsq = np.real_if_close(tail*np.conjugate(tail))
 
         self.chis = chiB
-        self.SV = Slist
+        self.SV = _Slist
 
         logging.info(f"after R sweep chis: {chiB}")
-        logging.info("and the SVs squared:")
         
         
         curr_form = 'R'
@@ -339,10 +323,10 @@ class myMPS:
         
                 Mtilde = ncon([np.diag(s), Vdag, _Blist[jj]], [[-1,1],[1,2],[2,-2,-3]])  
                 Mtr = np.reshape(Mtilde, (chiA[jj]*DD, chiB[jj+1]))
-                u, s, Vdag = svd(Mtr,full_matrices=0)  
+                u, s, Vdag = svd(Mtr,full_matrices=False)  
                 chiA[jj+1] = np.size(s)
                 _Alist[jj] = np.reshape(u,(chiA[jj],DD,chiA[jj+1]))
-                Slist[jj+1] = s
+                _Slist[jj+1] = s
         
             tail = s @ Vdag 
         
@@ -368,10 +352,10 @@ class myMPS:
 
         # Inverting SVs 
 
-        _Sinvlist = Slist[:]
+        _Sinvlist = _Slist[:]
 
         # here we invert SVs so be mindful 
-        for ii, sli in enumerate(Slist):
+        for ii, sli in enumerate(_Slist):
             _Sinvlist[ii] = np.array([ss**(-1) for ss in sli])
             if np.isnan(_Sinvlist[ii]).any():
                 raise ZeroDivisionError("NaN when inverting SV's !!!! ")
@@ -418,14 +402,14 @@ class myMPS:
             return self.curr_form
 
             
-        Glist = [1.]*self.LL
+        Glist = [np.array(1.)]*self.LL
 
         if self.curr_form == 'R':
             # Building the canonical form from the B's 
             # And rebuilding the B's from the Gammas 
 
             Blist = self.MPS
-            Alist = [1.]*self.LL
+            Alist = [np.array(1.)]*self.LL
 
             for jj in range(0,self.LL):
                 Glist[jj] = ncon( [Blist[jj], np.diag(self.SVinv[jj+1])],[[-1,1,-3],[1,-2]])
@@ -438,7 +422,7 @@ class myMPS:
             # And rebuilding the B's from the Gammas 
 
             Alist = self.MPS
-            Blist = [1.]*self.LL
+            Blist = [np.array(1.)]*self.LL
 
     
             for jj in range(0,self.LL):
@@ -502,7 +486,7 @@ class myMPS:
         idxList.extend(indicesMc)
 
         # norm = ncon([self.MPS, MPSconj], [indicesM,indicesMc])
-        norm = np.real_if_close(ncon(toContr,idxList))
+        norm = np.real_if_close(ncon(toContr,idxList))[0]
 
         return norm
 
@@ -539,8 +523,11 @@ class myMPS:
 
     def getNorm(self) -> float:
         norm = voverlap(self, self, conjugate=True)
-        if np.imag(norm)/np.real(norm) < 1e-15: norm = np.real(norm)
-        return norm 
+        if np.imag(norm)/np.real(norm) < 1e-14: 
+            norm = np.sqrt(np.real(norm))
+        else:
+            raise ArithmeticError("complex norm !?")
+        return norm
 
 
 
@@ -570,7 +557,7 @@ class myMPS:
 
     def expValOneSite(self, oper: np.ndarray, site: int) -> complex:
 
-        if(self.form != 'R'):
+        if(self.curr_form != 'R'):
             self.set_form(mode='R')
 
         # we can simply use the canonical form to compute it instantaneously
@@ -578,7 +565,7 @@ class myMPS:
         conTen = [np.diag(self.SV[site]),np.diag(self.SV[site]),self.MPS[site],np.conj(self.MPS[site]),oper]
         conIdx = [[1,2],[1,3],[3,5,4],[2,5,6],[4,6]]
 
-        return np.real_if_close(ncon(conTen,conIdx))
+        return np.real_if_close(ncon(conTen,conIdx))[0]
 
 
 
@@ -624,5 +611,5 @@ def voverlap(bra: myMPS, ket: myMPS, conjugate: bool = False ) -> complex:
     # Close the last site         
     overl = ncon( [blobL], [[1,1]] )    
 
-    return np.real_if_close(overl)
+    return np.real_if_close(overl)[0]
 
