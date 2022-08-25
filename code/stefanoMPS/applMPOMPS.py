@@ -21,7 +21,7 @@ def applyMPOtoMPS( inMPO: mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
     """ ncon into new MPS
 
      We do it site by site,  say we contract with the lower MPO leg 
-    TODO: check all conjugation conventions etc 
+
         
            |d
         D--o--D                |d
@@ -61,6 +61,7 @@ def expValMPO(psi: mps.myMPS, oper: mpo.myMPO ) -> complex:
         res = mps.voverlap(Opsi, psi, conjugate=True)
         
         return np.real_if_close(res)
+
 
 
 

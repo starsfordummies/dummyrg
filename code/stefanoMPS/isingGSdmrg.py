@@ -11,7 +11,7 @@ from isingMPO import IsingMPO
 from oned_ising_tenpy import example_DMRG_tf_ising_finite
 
 
-LLL = 10
+LLL = 20
 
 # maximum chi 
 chiM = 40
@@ -27,7 +27,6 @@ Smid_tenpy = psi_tenpy.entanglement_entropy()[(LLL-1)//2]
 
 psi = mps.myMPS(mps.randMPS(LLL,chi=20))
 
-
 Hising = mpo.myMPO(IsingMPO(LLL, J=1., g=gg))
 
 Emin1 = mpomps.expValMPO(psi, Hising)
@@ -38,6 +37,4 @@ print(f"norm3 = {psi.getNorm()}")
 Emin3 = mpomps.expValMPO(psi, Hising)
 print(f"norm4 = {psi.getNorm()}")
 
-print(Emin1, Emin2, Emin3, E_tenpy)
-
-print(psi.getNorm())
+print(f"Before DMRG: {Emin1} \n After DMRG: {Emin2} \n DMRG+Norm: {Emin3} \n Tenpy: {E_tenpy}")

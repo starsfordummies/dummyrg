@@ -1,4 +1,4 @@
-# Last modified: 2022/08/25 11:06:23
+# Last modified: 2022/08/25 11:48:56
 
 from __future__ import annotations
 
@@ -49,10 +49,7 @@ def plusState(LL: int=10) -> list[np.ndarray]:
     return outMPS
 
 def bigEntState(LL: int=10) -> list[np.ndarray]:
-
-    """ Returns a product "plus" state
-    """
-
+    #TODO: implement a state with large entropy 
     chi = 2
     d = 2
     logging.info(f"Building product |+> state of length {LL} (physical d={d})")
@@ -137,7 +134,7 @@ class myMPS:
 
 
 
-    def __init__(self, inputMPS: list=randMPS(LL=7, chi=20, d=2)):
+    def __init__(self, inputMPS: list[np.ndarray]=randMPS(LL=7, chi=20, d=2)):
       
         LL = len(inputMPS)
      
@@ -318,16 +315,19 @@ class myMPS:
         curr_form = 'R'
 
         
-        if np.abs( normsq - 1.) < epsNorm and self.checkSVsAreOne():
-            self.normalized = 1 
-        else:
-            self.normalized = 0 
+        # if np.abs( normsq - 1.) < epsNorm and self.checkSVsAreOne():
+        #     self.normalized = 1 
+        # else:
+        #     self.normalized = 0 
    
 
      
-        """
-         Redo left sweep if not normalized after truncation 
-        """
+        # """
+        #  Redo left sweep if not normalized after truncation 
+        # """
+
+        # FIXME: hack, always do 3rd sweep 
+        self.normalized = 0
         
         if self.normalized == 0:
             logging.info("State not normalized after R sweep: Performing a Left Sweep again")
