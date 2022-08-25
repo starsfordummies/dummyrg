@@ -2,7 +2,7 @@
 import myMPSstuff as mps
 import myMPOstuff as mpo
 
-from tensornetwork import ncon
+from myUtils import sncon as ncon
 import numpy as np 
 
 
@@ -11,6 +11,8 @@ def init_env(LL: int):
     env = [np.array(1.).reshape(1,1,1)]*(LL+1)
   
     return env
+
+
 
 
 def build_left_env(psi: mps.myMPS, o: mpo.myMPO):
@@ -30,13 +32,13 @@ def build_left_env(psi: mps.myMPS, o: mpo.myMPO):
 
 
 
-def update_left_env(lenv: list[np.array], Aj: np.array, wj: np.array, jj: int ):
+def update_left_env(lenv: list[np.ndarray], Aj: np.ndarray, wj: np.ndarray, jj: int ):
     """ Updates the left environment with the new matrix A[j]
      corresponding to the j-th site.
     So eg. if we feed an updated A3, we will build an updated contraction
       / A3*-       /-
     L3- W3-   =  L4 - 
-      \ A3-        \-
+      \\ A3-       \\-
 
     """
     
@@ -72,11 +74,11 @@ def build_right_env(psi: mps.myMPS, o: mpo.myMPO):
 
 
 
-def update_right_env(renv: list[np.array], Bj: np.array, wj: np.array, jj: int ):
+def update_right_env(renv: list[np.ndarray], Bj: np.ndarray, wj: np.ndarray, jj: int ):
     """ Updates the right environment with the new matrix B[j] 
     corresponding to the j-th site. 
     So eg. if we feed an updated B3, we will build an updated contraction
-    - B2*-\        \
+    - B2*-\\       \
     - W2-- R3  =   -R2 
     - B2--/        / 
     """
@@ -90,7 +92,7 @@ def update_right_env(renv: list[np.array], Bj: np.array, wj: np.array, jj: int )
     return renv
 
 
-def build_environments(psi: mps.myMPS, o: mpo.myMPO) -> tuple[list[np.array],list[np.array]]:
+def build_environments(psi: mps.myMPS, o: mpo.myMPO) -> tuple[list[np.ndarray],list[np.ndarray]]:
     # Build the left and right envs for DMRG 
 
     if o.DD != psi.DD: 
@@ -100,7 +102,6 @@ def build_environments(psi: mps.myMPS, o: mpo.myMPO) -> tuple[list[np.array],lis
         raise ValueError(f"MPO and MPS don't have the same length (L={o.LL} vs {psi.LL}),  aborting")
     
     if not psi.canon: psi.bringCan(epsTrunc=1e-12)
-
 
     le = build_left_env(psi, o)
     re = build_right_env(psi, o)

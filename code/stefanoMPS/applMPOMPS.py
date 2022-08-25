@@ -2,12 +2,12 @@
 import myMPSstuff as mps
 import myMPOstuff as mpo
 
-from tensornetwork import ncon
+from myUtils import sncon as ncon
 import numpy as np 
 
 
 
-def applyMPOtoMPS( inMPO: mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
+def applyMPOtoMPS(inMPO: mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
 
     """ Calculate the product of an MPO with an MPS """
 
@@ -33,7 +33,7 @@ def applyMPOtoMPS( inMPO: mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
         """
     
     # newMPS = []
-    newMPS = [None]*inMPS.LL
+    newMPS = [np.array(None)]*inMPS.LL
 
     for jj, (Mj, Wj) in enumerate(zip(inMPS.MPS, inMPO.MPO)):  #range(0, inMPS.LL):
         # mps: vL vR p*  | mpo : vL vR pU pD* 
@@ -60,7 +60,7 @@ def expValMPO(psi: mps.myMPS, oper: mpo.myMPO ) -> complex:
         Opsi = applyMPOtoMPS(oper, psi)
         res = mps.voverlap(Opsi, psi, conjugate=True)
         
-        return np.real_if_close(res)
+        return np.real_if_close(res)[0]
 
 
 

@@ -4,15 +4,13 @@ from __future__ import annotations
 import applMPOMPS as mpomps
 import logging
 
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from myMPSstuff import myMPS
-    from myMPOstuff import myMPO
+import myMPSstuff as mps
+import myMPOstuff as mpo
 
 # For pretty progress bars 
 from tqdm import tqdm  
 
-def power_method(MPO: myMPO, startMPS: myMPS, chiM: int, iters: int = 200, HMPO: myMPO = 0, full_ents: bool = False): #-> (myMPS, list, list, list, list):
+def power_method(MPO: mpo.myMPO, startMPS: mps.myMPS, chiM: int, iters: int = 200, HMPO: mpo.myMPO | int = 0, full_ents: bool = False): #-> (myMPS, list, list, list, list):
 
     if HMPO == 0:
         print("Returning energies as expectation value of the evolution MPO")
@@ -92,7 +90,7 @@ def power_method(MPO: myMPO, startMPS: myMPS, chiM: int, iters: int = 200, HMPO:
 
 
 
-def power_method_untilconverged(MPO: myMPO, startMPS, chiM: int, HMPO: myMPO = 0, full_ents: bool = False, epsConv = 1e-4):
+def power_method_untilconverged(MPO: mpo.myMPO, startMPS, chiM: int, HMPO: mpo.myMPO | int = 0, full_ents: bool = False, epsConv = 1e-4):
     nSteps = 50
     oPsi, iter, entropies, devec, energies = power_method(MPO, startMPS, chiM, nSteps, HMPO, full_ents)
     nloop = 0 

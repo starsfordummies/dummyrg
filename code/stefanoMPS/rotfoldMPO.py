@@ -1,7 +1,7 @@
 #from math import sin, cos, sinh, cosh, sqrt
 import numpy as np
 from scipy import linalg as LA
-from tensornetwork import ncon
+from myUtils import sncon as ncon
 
 sx = np.asarray([[0., 1], [1, 0.]])
 sz = np.asarray([[1, 0.], [0., -1]])
@@ -152,9 +152,12 @@ def buildMixRotFoldMPO(times: dict, gz: float = 0.2, rules: dict = {"mmode": "sv
     if LL == 0 or LL%2 != 0:
         raise ValueError(f"Odd length for the MPO, L={LL}")
 
+    WWre = np.array(0.)
+    WWim = np.array(0.)
 
     # In principle we can build it in several different ways
     if mode == "sin":
+
         raise NotImplementedError
 
     elif mode == "svd":
