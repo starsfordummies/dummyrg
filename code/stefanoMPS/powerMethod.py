@@ -12,9 +12,13 @@ from tqdm import tqdm
 
 def power_method(MPO: mpo.myMPO, startMPS: mps.myMPS, chiM: int, iters: int = 200, HMPO: mpo.myMPO | int = 0, full_ents: bool = False): #-> (myMPS, list, list, list, list):
 
-    if HMPO == 0:
+   
+    if not isinstance(HMPO, mpo.myMPO):
         print("Returning energies as expectation value of the evolution MPO")
-        HMPO = MPO
+        enMPO = MPO
+    else: 
+        enMPO = HMPO
+
 
     LL = len(startMPS.MPS)
 
@@ -61,7 +65,7 @@ def power_method(MPO: mpo.myMPO, startMPS: mps.myMPS, chiM: int, iters: int = 20
             iter.append(jj)
             ent_mids.append(ent_new)
             if full_ents: entropies.append(ents)
-            energies.append(mpomps.expValMPO(oPsi,HMPO))
+            energies.append(mpomps.expValMPO(oPsi,enMPO))
             #print(j, oPsi.chis)
 
 

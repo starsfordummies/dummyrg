@@ -104,3 +104,8 @@ def sncon(listArr, listInd) -> np.ndarray:
         print(f"shapes: [{[np.shape(a) for a in listArr]}]")
         print(f"contrs: {listInd}")
         return np.array(np.nan)
+
+
+def real_close(input: np.ndarray | np.complex128) -> np.ndarray | np.complex128 | np.float64: 
+    return np.real_if_close(input)
+

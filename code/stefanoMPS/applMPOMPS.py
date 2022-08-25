@@ -3,6 +3,7 @@ import myMPSstuff as mps
 import myMPOstuff as mpo
 
 from myUtils import sncon as ncon
+from myUtils import real_close as rc
 import numpy as np 
 
 
@@ -60,7 +61,7 @@ def expValMPO(psi: mps.myMPS, oper: mpo.myMPO ) -> complex:
         Opsi = applyMPOtoMPS(oper, psi)
         res = mps.voverlap(Opsi, psi, conjugate=True)
         
-        return np.real_if_close(res)[0]
+        return rc(res)
 
 
 

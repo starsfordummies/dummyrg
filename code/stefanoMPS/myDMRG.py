@@ -3,10 +3,9 @@ import myMPOstuff as mpo
 import myEnvironmentsMPO as envs
 
 import numpy as np 
-from tensornetwork import ncon
+from myUtils import sncon as ncon
 from scipy import linalg as LA 
 import scipy.sparse.linalg as LAS
-#from myUtils import checkIdMatrix
 
 
 
@@ -151,6 +150,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
             envs.update_right_env(re, vdag, ww[jj], jj)
 
             if lam0 < Emin : Emin = lam0
+            print(f"{lam0 = }")
 
         print(f"Nsweep = {ns}, En = {Emin}")
         print(f"chis = {inMPS.chis}")

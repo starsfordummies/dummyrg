@@ -1,4 +1,4 @@
-# Last modified: 2022/08/25 15:59:05
+# Last modified: 2022/08/25 17:19:16
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import numpy as np
 #from numpy import linalg as LA
 from numpy.linalg import svd, qr 
 from myUtils import sncon as ncon
+from myUtils import real_close as rc
 import logging
 
 # MPS Indices convention:
@@ -288,7 +289,7 @@ class myMPS:
 
         tail = u @ s
 
-        normsq = np.real_if_close(tail*np.conjugate(tail))
+        normsq = rc(tail*np.conjugate(tail))
 
         self.chis = chiB
         self.SV = _Slist
@@ -330,7 +331,7 @@ class myMPS:
         
             tail = s @ Vdag 
         
-            normsq = np.real_if_close(tail*np.conjugate(tail))
+            normsq = rc(tail*np.conjugate(tail))
 
 
 
@@ -486,7 +487,7 @@ class myMPS:
         idxList.extend(indicesMc)
 
         # norm = ncon([self.MPS, MPSconj], [indicesM,indicesMc])
-        norm = np.real_if_close(ncon(toContr,idxList))[0]
+        norm = rc(ncon(toContr,idxList))
 
         return norm
 
@@ -555,7 +556,7 @@ class myMPS:
             return True
 
 
-    def expValOneSite(self, oper: np.ndarray, site: int) -> complex:
+    def expValOneSite(self, oper: np.ndarray, site: int) -> np.complex128:
 
         if(self.curr_form != 'R'):
             self.set_form(mode='R')
@@ -565,12 +566,12 @@ class myMPS:
         conTen = [np.diag(self.SV[site]),np.diag(self.SV[site]),self.MPS[site],np.conj(self.MPS[site]),oper]
         conIdx = [[1,2],[1,3],[3,5,4],[2,5,6],[4,6]]
 
-        return np.real_if_close(ncon(conTen,conIdx))[0]
+        return rc(ncon(conTen,conIdx))
 
 
 
 
-def voverlap(bra: myMPS, ket: myMPS, conjugate: bool = False ) -> complex:
+def voverlap(bra: myMPS, ket: myMPS, conjugate: bool = False ) -> np.complex128:
 
     """Computes the overap of an MPS (bra) with another MPS (ket)
     Warning!!: This does only conjugate if you pass the "conjugate = True" argument 
@@ -610,6 +611,7 @@ def voverlap(bra: myMPS, ket: myMPS, conjugate: bool = False ) -> complex:
 
     # Close the last site         
     overl = ncon( [blobL], [[1,1]] )    
+    #print(f"{overl=}, {type(overl)=}")
 
-    return np.real_if_close(overl)[0]
+    return rc(overl)
 
