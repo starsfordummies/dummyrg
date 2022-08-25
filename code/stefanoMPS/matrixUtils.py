@@ -1,4 +1,5 @@
 import numpy as np 
+from ncon import ncon 
 
 def checkIdMatrix(ainp: np.array, epstol = 1e-14) -> bool:
     """Checks if an array is an identity matrix (within machine precision)"""
@@ -24,6 +25,8 @@ def alleq(tensor1: np.array, tensor2:np.array) -> bool:
   if np.shape(tensor1) != np.shape(tensor2): return False
 
   return np.ravel(np.isclose(tensor1,tensor2)).all()
+
+
 
 def build_perms(tensor: np.array, n: int, perm: tuple, listPerms: list) -> list:
     
@@ -88,3 +91,14 @@ def equal_up_to_perm(t1: np.array, t2: np.array) -> bool:
         return True
 
 """
+
+
+
+
+def sncon(listArr, listInd):
+    try:
+        return ncon(listArr,listInd)
+    except ValueError:
+        print(f"wrong contraction")
+        print(f"shapes: [{np.shape(a)}], [{np.shape(b)}]")
+        print(f"contrs: {listInd}")
