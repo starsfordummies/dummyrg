@@ -4,7 +4,7 @@ import myEnvironmentsMPO as envs
 
 import numpy as np 
 from myUtils import sncon as ncon
-from scipy import linalg as LA 
+#from scipy import linalg as LA 
 import scipy.sparse.linalg as LAS
 
 
@@ -71,14 +71,14 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
             lam0, eivec0 = LAS.eigsh(Heff, k=1, which='SA', v0=guessTheta, tol=toleig) #, v0=psi_flat, tol=tol, ncv=N_min)
           
             u, s, vdag, chiTrunc = mps.SVD_trunc(eivec0.reshape(chis[jj]*dd,dd*chis[jj+2]),1e-10,40)
-            print(f"[L] truncating {chis[jj]*dd}-{dd*chis[jj+2]} -> {chiTrunc}")
+            #print(f"[L] truncating {chis[jj]*dd}-{dd*chis[jj+2]} -> {chiTrunc}")
             
-            print("Checking unitarity of U: ncon u udag gives")
-            print(np.round( np.real_if_close(ncon([u, np.conj(u)],[[1,-1],[1,-2]])), 12 ))
+            #print("Checking unitarity of U: ncon u udag gives")
+            #print(np.round( np.real_if_close(ncon([u, np.conj(u)],[[1,-1],[1,-2]])), 12 ))
             #ss = LA.sqrtm(np.diag(s))
             ss = np.diag(s) #/ LA.norm(s)
 
-            print(f"Norms: {LA.norm(u)}, {LA.norm(ss)}, {LA.norm(vdag)}")
+            #print(f"Norms: {LA.norm(u)}, {LA.norm(ss)}, {LA.norm(vdag)}")
           
             u = u.reshape(chis[jj],dd,chiTrunc).transpose(0,2,1)
             ssv = (ss @ vdag).reshape(chiTrunc,dd,chis[jj+2]).transpose(0,2,1)
@@ -94,7 +94,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
 
             #print(f"truncated {np.shape(Apsi[jj])}, {np.shape(Apsi[jj+1])}")
 
-            print(f"Updated norm: {inMPS.getNorm()}")
+            #print(f"Updated norm: {inMPS.getNorm()}")
 
             # update left env 
             le = envs.update_left_env(le, u, ww[jj], jj)
@@ -110,7 +110,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
         envs.update_right_env(re, psi[LL-1], ww[LL-1], LL-1)
 
         for jj in range(LL-2,0,-1): # in enumerate(Apsi[1:]):
-            print(f"[R] ncon L({jj-1}) W({jj-1}) W({jj}) R({jj+1}) updating A[{jj-1}] B[{jj}]")
+            #print(f"[R] ncon L({jj-1}) W({jj-1}) W({jj}) R({jj+1}) updating A[{jj-1}] B[{jj}]")
             #Heff = ncon([le[jj-1], ww[jj-1], ww[jj], re[jj+1]],
             #[[-1,1,-5],[1,2,-2,-6],[2,3,-3,-7],[-4,3,-8]])
             
@@ -131,7 +131,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS) -> mps.myMPS:
             lam0, eivec0 = LAS.eigsh(Heff, k=1, which='SA',tol=toleig) #, v0=psi_flat, tol=tol, ncv=N_min)
             u, s, vdag, chiTrunc = mps.SVD_trunc(eivec0.reshape(chis[jj-1]*dd,dd*chis[jj+1]),1e-10,40)
 
-            print(f"[R] truncating {chis[jj-1]*dd} {dd*chis[jj+1]} -> {chiTrunc}")
+            #print(f"[R] truncating {chis[jj-1]*dd} {dd*chis[jj+1]} -> {chiTrunc}")
             #ss = LA.sqrtm(np.diag(s))
             ss = np.diag(s) #/ LA.norm(s)
 
