@@ -1,7 +1,7 @@
 import numpy as np 
 from ncon import ncon 
 
-def checkIdMatrix(ainp: np.ndarray, epstol = 1e-14) -> bool:
+def checkIdMatrix(ainp: np.ndarray, epstol: float = 1e-14, verbose: bool = True) -> bool:
     """Checks if an array is an identity matrix (within machine precision)"""
 
     a = np.array(ainp)
@@ -13,8 +13,25 @@ def checkIdMatrix(ainp: np.ndarray, epstol = 1e-14) -> bool:
             print(f"identity, size = {size}")
             return True
         else:
-            print(f"Square but not id, difference Max = {np.max(np.abs(a - np.eye(size)))}")
+            if verbose: 
+                print(f"Square({size}) but not id, difference Max = {np.max(np.abs(a - np.eye(size)))}")
+            else: 
+                print(f"Square but not id, difference Max = {np.max(np.abs(a - np.eye(size)))}")
             return False
+
+
+def checkCanonical(mps: list[np.ndarray], jj: int = -1) -> bool:
+    # jj is the orthogonality center link,
+    # so all matrices to its left (until jj-1) should be A's 
+    # and all those to its left should be B's 
+    if jj < 0: jj = len(mps)
+    print(f"Checking A's from 0 to {jj-1}")
+    [ checkIdMatrix(ncon([m,np.conj(m)],[[1,-1,2],[1,-2,2]])) for m in mps[:jj] ]
+    print(f"Checking B's from {jj} to {len(mps)-1}")
+    [ checkIdMatrix(ncon([m,np.conj(m)],[[-1,1,2],[-2,1,2]])) for m in mps[jj:] ]
+
+    # TODO
+    return True
 
 
 # TODO:
@@ -103,7 +120,7 @@ def sncon(listArr, listInd) -> np.ndarray:
         print(f"wrong contraction")
         print(f"shapes: [{[np.shape(a) for a in listArr]}]")
         print(f"contrs: {listInd}")
-        return np.array(np.nan)
+        raise ValueError
 
 
 def real_close(input: np.ndarray | np.complex128) -> np.ndarray | np.complex128 | np.float64: 

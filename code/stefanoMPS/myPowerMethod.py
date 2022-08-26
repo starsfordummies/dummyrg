@@ -1,11 +1,11 @@
 
-from __future__ import annotations
+#from __future__ import annotations
 
-import applMPOMPS as mpomps
 import logging
 
 import myMPSstuff as mps
 import myMPOstuff as mpo
+import myMPOMPS as mpomps
 
 # For pretty progress bars 
 from tqdm import tqdm  
