@@ -59,6 +59,7 @@ def power_method(MPO: mpo.myMPO, startMPS: mps.myMPS, chiM: int, iters: int = 20
         ent_new = ents[midchain]
     
         de = abs(ent_mid - ent_new)
+        
         #print(f"Entropies: {emid, enew, de}")
         if jj%2 == 0:
             devec.append(de)
@@ -70,6 +71,11 @@ def power_method(MPO: mpo.myMPO, startMPS: mps.myMPS, chiM: int, iters: int = 20
 
 
         ent_mid = ent_new
+
+        # maybe break earlier if we converge quickly
+        if de < 1e-12:
+            print(f"Looks converged after {jj} steps")
+            break
 
     # check that the largest entropy is indeed at midchain
     locMax = ents.index(max(ents)) 

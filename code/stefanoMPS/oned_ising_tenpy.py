@@ -80,7 +80,7 @@ def example_1site_DMRG_tf_ising_finite(L, g, chimax = 50):
     #print("magnetization in X = {mag_x:.5f}".format(mag_x=mag_x))
     #print("magnetization in Z = {mag_z:.5f}".format(mag_z=mag_z))
 
-    print(f"EE = {psi.entanglement_entropy()}")
+    #print(f"EE = {psi.entanglement_entropy()}")
     print(f"midchainEE: {psi.entanglement_entropy()[(L-1)//2]} ")
 
     """
@@ -98,9 +98,9 @@ def example_1site_DMRG_tf_ising_finite(L, g, chimax = 50):
 
 if __name__ == "__main__":
     import logging
-    logging.basicConfig(level=logging.INFO)
-    example_DMRG_tf_ising_finite(L=20, g=1.0)
+    logging.basicConfig(level=logging.WARNING)
+    example_DMRG_tf_ising_finite(L=30, g=0.9)
     print("-" * 100)
-    example_1site_DMRG_tf_ising_finite(L=20, g=1.0)
+    example_1site_DMRG_tf_ising_finite(L=30, g=0.9)
     print("-" * 100)
   

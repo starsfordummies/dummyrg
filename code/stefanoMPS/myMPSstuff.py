@@ -1,4 +1,4 @@
-# Last modified: 2022/08/25 17:19:16
+# Last modified: 2022/08/26 13:10:09
 
 from __future__ import annotations
 
@@ -497,11 +497,10 @@ class myMPS:
 
 
 
-    # it's unlikely that we want to be truncating here.. 
-    def getEntropies(self, numSVs: int = 0 ) -> list[float]:
+    def getEntropies(self) -> list[float]:
         # Puts in canonical form if necessary and extracts the entropies 
         if not self.canon or not self.normalized:  
-            if numSVs == 0: numSVs = np.max(self.chis)
+            numSVs = np.max(self.chis)
             logging.warning(f"Putting in canonical form and truncating at {numSVs}")
             self.bringCan(chiMax = numSVs, epsTrunc=1e-14)
         
@@ -542,6 +541,8 @@ class myMPS:
             return True
 
 
+
+
     def checkSVsAreOne(self, eps=1e-12) -> bool:
 
         # The sum of squared SVDs should be 1
@@ -554,6 +555,8 @@ class myMPS:
             return False
         else:
             return True
+
+
 
 
     def expValOneSite(self, oper: np.ndarray, site: int) -> np.complex128:
