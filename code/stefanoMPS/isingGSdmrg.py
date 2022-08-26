@@ -3,11 +3,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import myMPSstuff as mps
 import myMPOstuff as mpo
-import applMPOMPS as mpomps
+import myMPOMPS as mpomps
 
 import myDMRG as dmrg
 
-from isingMPO import IsingMPO
+from myIsingMPO import IsingMPO
 from oned_ising_tenpy import example_DMRG_tf_ising_finite
 
 import cProfile
@@ -17,9 +17,9 @@ import pstats
 LLL = 20
 
 # maximum chi 
-chiM = 40
+chiM = 50
 
-gg = 0.4
+gg = 0.9
 
 
 # Do it with tenpy 
@@ -35,16 +35,16 @@ Hising = mpo.myMPO(IsingMPO(LLL, J=1., g=gg))
 Emin1 = mpomps.expValMPO(psi, Hising)
 
 
-with cProfile.Profile() as pr:
+# with cProfile.Profile() as pr:
     
-    Emin2 = dmrg.findGS_DMRG(Hising, psi)
+Emin2 = dmrg.findGS_DMRG(Hising, psi, 50, 5)
 
-print(f"norm3 = {psi.getNorm()}")
 Emin3 = mpomps.expValMPO(psi, Hising)
-print(f"norm4 = {psi.getNorm()}")
 
 print(f"Before DMRG: {Emin1} \n After DMRG: {Emin2} \n DMRG+Norm: {Emin3} \n Tenpy: {E_tenpy}")
+print(f"EE {Smid_tenpy = }, {psi.getEntropies()[(LLL-1)//2] = }")
 
-stats = pstats.Stats(pr)
-stats.sort_stats(pstats.SortKey.TIME)
-stats.print_stats()
+# stats = pstats.Stats(pr)
+# stats.sort_stats(pstats.SortKey.TIME)
+# #stats.print_stats()
+# stats.dump_stats(filename="profi_ising.prof")
