@@ -9,7 +9,6 @@ import numpy as np
 def init_env(LL: int):
     
     env = [np.array(1.).reshape(1,1,1)]*(LL+1)
-  
     return env
 
 

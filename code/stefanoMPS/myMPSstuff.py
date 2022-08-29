@@ -1,4 +1,4 @@
-# Last modified: 2022/08/29 13:05:21
+# Last modified: 2022/08/29 17:26:29
 
 from __future__ import annotations
 
@@ -345,7 +345,7 @@ class myMPS:
                     
         
             curr_form = 'L'
-            print("3 sweeps")
+            #print("3 sweeps")
 
             if( chiA != chiB): 
                 raise ValueError("Something strange: after 3rd sweep chi's still changed")
@@ -499,7 +499,7 @@ class myMPS:
 
     def getEntropies(self) -> list[float]:
         # Puts in canonical form if necessary and extracts the entropies 
-        if not self.canon or not self.normalized:  
+        if not self.canon:  
             numSVs = np.max(self.chis)
             logging.warning(f"Putting in canonical form and truncating at {numSVs}")
             self.bringCan(chiMax = numSVs, epsTrunc=1e-14)
@@ -540,10 +540,7 @@ class myMPS:
         else:
             self.normalized = True
             return True
-
-
-
-
+        
     def checkSVsAreOne(self, eps=1e-12) -> bool:
 
         # The sum of squared SVDs should be 1
@@ -557,6 +554,18 @@ class myMPS:
         else:
             return True
 
+
+    
+    def checkCan(self, eps=1e-12) -> bool:
+        """ We assume that having <psi|psi> = 1  _and_  sum SV^2 = 1 
+            is good enough to say that it's in a canonical form """
+            
+        if self.checkNormalized() and self.checkSVsAreOne():
+            self.canon = True
+            return True
+        else: 
+            self.canon = False
+            return False
 
 
 

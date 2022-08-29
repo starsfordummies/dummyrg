@@ -4,13 +4,16 @@ import myEnvironmentsMPO as envs
 
 import numpy as np 
 from myUtils import sncon as ncon
-from myUtils import checkCanonical as ccan
+#from myUtils import checkCanonical as ccan
 from scipy import linalg as LA 
 import scipy.sparse.linalg as LAS
 
 
 
-def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int = 5) -> mps.myMPS:
+
+def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int = 5) -> complex:
+    """ My DMRG algo, modifies in-place psi, returns the energy """
+
 
     if inMPO.DD != inMPS.DD: 
         raise ValueError(f"MPO and MPS don't have the same physical dimension (D={inMPO.DD} vs {inMPS.DD}),  aborting")
@@ -34,7 +37,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
     psi = inMPS.MPS
     SVs = inMPS.SV
 
-    toleig = 1e-6
+    toleig = 1e-4
 
     guessTheta = np.random.rand(chis[0]*dd*dd*chis[2])
 
@@ -42,10 +45,11 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
 
     for ns in range(0,nsweeps):
 
+        # As we go to later sweeps, progressively increase the precision in the eigensolver
         toleig = toleig*0.1
       
-        # ===>>===>     (L-R sweep )
-        for jj in range(0,LL-1): #, Aj in enumerate(Apsi[:-1]):
+        # >>>>>>>>>>> (L-R sweep ) >>>>>>>>>>>>>
+        for jj in range(0,LL-1): 
             #print(f"[L] ncon L({jj}) W({jj}) W({jj+1}) R({jj+2}) updating A[{jj}] B[{jj+1}]")
 
             dimH = chis[jj]*dd*dd*chis[jj+2]
@@ -59,7 +63,8 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
 
             Heff = LAS.LinearOperator((dimH,dimH), matvec=HthetaL)
 
-            lam0, eivec0 = LAS.eigsh(Heff, k=1, which='SA', v0=guessTheta, tol=toleig) #, v0=psi_flat, tol=tol, ncv=N_min)
+            lam0, eivec0 = LAS.eigsh(Heff, k=1, which='SA', v0=guessTheta , tol=toleig) 
+            #, v0=psi_flat, tol=tol, ncv=N_min)
           
             u, s, vdag, chiTrunc = mps.SVD_trunc(eivec0.reshape(chis[jj]*dd,dd*chis[jj+2]),1e-12,chiMax)
           
@@ -72,14 +77,8 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
 
             psi[jj] = u
             chis[jj+1] = chiTrunc
-
-
-            # debugging check
-            #psi[jj+1] = vdag.reshape(chiTrunc,dd,chis[jj+2]).transpose(0,2,1) 
-            #if jj == LL//2: #midchain check for orthogonality
-            #    ccan(psi, jj+1)
-
-            #SVs[jj+1] = ss
+            # It shouldn't be necessary to update the SVs here (except for the last link),
+            # we'll do it in the right sweep
 
             if jj < LL-2:
                 guessTheta = ncon([ssv,psi[jj+2]],[[-1,1,-2],[1,-4,-3]]) 
@@ -90,10 +89,10 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
             # update left env 
             le = envs.update_left_env(le, psi[jj], ww[jj], jj)
  
-        #print( [np.shape(i) for i in le] )
-        
+        # end left sweep
 
-        # <====<<====    (R-L sweep)
+
+        # <<<<<<<<<<<<<  (R-L sweep) <<<<<<<<<<<<<<<<
         Emin = 0.
 
         envs.update_right_env(re, psi[LL-1], ww[LL-1], LL-1)
@@ -112,6 +111,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
             Heff = LAS.LinearOperator(shape=(dimH,dimH), matvec=HthetaR)
 
             lam0, eivec0 = LAS.eigsh(Heff, k=1, which='SA', v0=guessTheta, tol=toleig) 
+
             u, s, vdag, chiTrunc = mps.SVD_trunc(eivec0.reshape(chis[jj-1]*dd,dd*chis[jj+1]),1e-16,chiMax)
 
             sn = s / LA.norm(s)
@@ -120,14 +120,8 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
             uss = (u @ ss).reshape(chis[jj-1],dd,chiTrunc).transpose(0,2,1)  
             vdag = vdag.reshape(chiTrunc,dd,chis[jj+1]).transpose(0,2,1)
 
-            # FIXME CHECK u or uss ? 
-            # fixme: do we even need this at all !?
-            #psi[jj-1] = u.reshape(chis[jj-1],dd,chiTrunc).transpose(0,2,1)  
-
             SVs[jj] = sn
-
             psi[jj] = vdag
-            
             chis[jj] = chiTrunc
 
             guessTheta = ncon([psi[jj-2],uss],[[-1,1,-2],[1,-4,-3]]) 
@@ -136,11 +130,11 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
             envs.update_right_env(re, psi[jj], ww[jj], jj)
 
             if lam0 < Emin : Emin = lam0
-            print(f"{lam0 = }")
+            #print(f"{lam0 = }")
        
         print(f"chis = {inMPS.chis}")
 
-        if(abs(Emin - Emin_prev) < 1e-15):
+        if(abs(Emin - Emin_prev) < 1e-13):
             print(f"Converged after {ns+1} sweeps")
             break
         else: 
