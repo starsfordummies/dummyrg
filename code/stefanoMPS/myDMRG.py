@@ -56,10 +56,12 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
 
             def HthetaL(th: np.ndarray):
                 theta = th.reshape(chis[jj], dd, dd, chis[jj+2])
-                Lwtheta = ncon([le[jj], ww[jj], theta],[[-1,2,3],[2,-2,-3,4],[3,4,-4,-5]])
-                wR = ncon([ww[jj+1],re[jj+2]], [[-2,2,-4,-5],[-1,2,-3]])
+                #Lwtheta = ncon([le[jj], ww[jj], theta],[[-1,2,3],[2,-2,-3,4],[3,4,-4,-5]])
+                #wR = ncon([ww[jj+1],re[jj+2]], [[-2,2,-4,-5],[-1,2,-3]])
 
-                return ncon([Lwtheta,wR], [[-1,2,-2,3,4],[-4,2,4,-3,3]]).reshape(dimH)
+                #return ncon([Lwtheta,wR], [[-1,2,-2,3,4],[-4,2,4,-3,3]]).reshape(dimH)
+                return ncon([le[jj], ww[jj], theta, ww[jj+1],re[jj+2]],
+                    [[-1,1,2],[1,7,-2,3],[2,3,6,5],[7,4,-3,6],[-4,4,5]]).reshape(dimH)
 
             Heff = LAS.LinearOperator((dimH,dimH), matvec=HthetaL)
 
@@ -102,10 +104,13 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
             dimH = chis[jj-1]*dd*dd*chis[jj+1]
             def HthetaR(th: np.ndarray) -> np.ndarray:
                 theta = th.reshape(chis[jj-1], dd, dd, chis[jj+1])
-                Lwtheta = ncon([le[jj-1], ww[jj-1], theta],[[-1,2,3],[2,-2,-3,4],[3,4,-4,-5]])
-                wR = ncon([ww[jj],re[jj+1]], [[-2,2,-4,-5],[-1,2,-3]])
+                #Lwtheta = ncon([le[jj-1], ww[jj-1], theta],[[-1,2,3],[2,-2,-3,4],[3,4,-4,-5]])
+                #wR = ncon([ww[jj],re[jj+1]], [[-2,2,-4,-5],[-1,2,-3]])
 
-                return ncon([Lwtheta,wR], [[-1,2,-2,3,4],[-4,2,4,-3,3]]).reshape(dimH)
+                #return ncon([Lwtheta,wR], [[-1,2,-2,3,4],[-4,2,4,-3,3]]).reshape(dimH)
+
+                return ncon([le[jj-1], ww[jj-1], theta, ww[jj],re[jj+1]],
+                [[-1,1,2],[1,7,-2,3],[2,3,6,5],[7,4,-3,6],[-4,4,5]]).reshape(dimH)
 
 
             Heff = LAS.LinearOperator(shape=(dimH,dimH), matvec=HthetaR)

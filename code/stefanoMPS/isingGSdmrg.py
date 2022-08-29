@@ -18,17 +18,17 @@ from datetime import timedelta
 
 
 
-LLL = 20
+LLL = 30
 
 # maximum chi 
 chiM = 50
 
-gg = 0.9
+gg = 1.1
 
 
 # Do it with tenpy 
 E_tenpy, psi_tenpy, _ = example_DMRG_tf_ising_finite(LLL, gg, chiM)
-Smid_tenpy = psi_tenpy.entanglement_entropy()[(LLL-1)//2]
+Smid_tenpy = psi_tenpy.entanglement_entropy()
 
 
 
@@ -42,10 +42,10 @@ Emin1 = mpomps.expValMPO(psi, Hising)
 # with cProfile.Profile() as pr:
 
 start = timer()
-Emin2 = dmrg.findGS_DMRG(Hising, psi, 50, 5)
+Emin2 = dmrg.findGS_DMRG(Hising, psi, chiMax = chiM, nsweeps = 5)
 end = timer()
 print(timedelta(seconds=end-start))
-sAfterDMRG = psi.getEntropies()[(LLL-1)//2] 
+sAfterDMRG = psi.getEntropies()
 
 Emin3 = mpomps.expValMPO(psi, Hising)
 
