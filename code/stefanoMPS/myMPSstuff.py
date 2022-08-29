@@ -1,4 +1,4 @@
-# Last modified: 2022/08/26 13:10:09
+# Last modified: 2022/08/29 13:05:21
 
 from __future__ import annotations
 
@@ -507,6 +507,7 @@ class myMPS:
         ents = []
         for lambdas in self.SV:
             #si = sum([-lam*np.log(lam) for lam in lambdas])
+            #print(lambdas)
             ents.append(sum([-lam**2 *np.log(lam**2) for lam in lambdas]))
         
         return ents
@@ -588,7 +589,7 @@ def voverlap(bra: myMPS, ket: myMPS, conjugate: bool = False ) -> np.complex128:
     """
 
     if bra.LL != ket.LL :
-        raise ValueError("Error: the sizes of the two MPSes do not coincide")
+        raise ValueError("Error: the lengths of the two MPSes do not coincide")
     if bra.DD != ket.DD:
         raise ValueError("Error: the physical dims of the two MPSes do not coincide")
 

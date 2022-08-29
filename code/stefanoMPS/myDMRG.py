@@ -38,6 +38,8 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
 
     guessTheta = np.random.rand(chis[0]*dd*dd*chis[2])
 
+    Emin_prev = 1e10
+
     for ns in range(0,nsweeps):
 
         toleig = toleig*0.1
@@ -61,7 +63,8 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
           
             u, s, vdag, chiTrunc = mps.SVD_trunc(eivec0.reshape(chis[jj]*dd,dd*chis[jj+2]),1e-12,chiMax)
           
-            ss = np.diag(s) / LA.norm(s)
+            sn = s / LA.norm(s)
+            ss = np.diag(sn) 
 
             u = u.reshape(chis[jj],dd,chiTrunc).transpose(0,2,1)
             ssv = (ss @ vdag).reshape(chiTrunc,dd,chis[jj+2]).transpose(0,2,1)
@@ -70,26 +73,25 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
             psi[jj] = u
             chis[jj+1] = chiTrunc
 
-            psi[jj+1] = vdag.reshape(chiTrunc,dd,chis[jj+2]).transpose(0,2,1)  # just for the orth check
-            if jj == LL//2: #midchain check for orthogonality
-                ccan(psi, jj+1)
 
-            # FIXME CHECK: WHEN WE GO BACK ARE WE BETTER OFF WITH V or S@V?
-            #psi[jj+1] = ssv 
+            # debugging check
+            #psi[jj+1] = vdag.reshape(chiTrunc,dd,chis[jj+2]).transpose(0,2,1) 
+            #if jj == LL//2: #midchain check for orthogonality
+            #    ccan(psi, jj+1)
 
-            SVs[jj+1] = ss
+            #SVs[jj+1] = ss
 
             if jj < LL-2:
                 guessTheta = ncon([ssv,psi[jj+2]],[[-1,1,-2],[1,-4,-3]]) 
-            else:
+            else:  # reached the edge
                 guessTheta = ncon([psi[jj-1], (u@ss).reshape(chis[jj],dd,chiTrunc).transpose(0,2,1)],[[-1,1,-2],[1,-4,-3]])
+                SVs[jj+1] = sn
 
             # update left env 
             le = envs.update_left_env(le, psi[jj], ww[jj], jj)
  
-        print( [np.shape(i) for i in le] )
+        #print( [np.shape(i) for i in le] )
         
-        print(inMPS.checkNormalized())
 
         # <====<<====    (R-L sweep)
         Emin = 0.
@@ -112,15 +114,17 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
             lam0, eivec0 = LAS.eigsh(Heff, k=1, which='SA', v0=guessTheta, tol=toleig) 
             u, s, vdag, chiTrunc = mps.SVD_trunc(eivec0.reshape(chis[jj-1]*dd,dd*chis[jj+1]),1e-16,chiMax)
 
-            ss = np.diag(s) / LA.norm(s)
+            sn = s / LA.norm(s)
+            ss = np.diag(sn) 
 
             uss = (u @ ss).reshape(chis[jj-1],dd,chiTrunc).transpose(0,2,1)  
             vdag = vdag.reshape(chiTrunc,dd,chis[jj+1]).transpose(0,2,1)
 
             # FIXME CHECK u or uss ? 
-            psi[jj-1] = u.reshape(chis[jj-1],dd,chiTrunc).transpose(0,2,1)  
+            # fixme: do we even need this at all !?
+            #psi[jj-1] = u.reshape(chis[jj-1],dd,chiTrunc).transpose(0,2,1)  
 
-            SVs[jj] = ss
+            SVs[jj] = sn
 
             psi[jj] = vdag
             
@@ -133,10 +137,26 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
 
             if lam0 < Emin : Emin = lam0
             print(f"{lam0 = }")
-
-        print(inMPS.checkNormalized())
-
-        print(f"Nsweep = {ns}, En = {Emin}")
+       
         print(f"chis = {inMPS.chis}")
+
+        if(abs(Emin - Emin_prev) < 1e-15):
+            print(f"Converged after {ns+1} sweeps")
+            break
+        else: 
+            print(f"Nsweep = {ns}, En = {Emin}, deltaE = {abs(Emin - Emin_prev)} ")
+            Emin_prev = Emin
+
+    # Do a final SVD to make the MPS fully right-canonical 
+    utail, stail, vdag = LA.svd( (u@ss).reshape(chis[0],dd*chiTrunc), full_matrices=False)
+    psi[0] = vdag.reshape(chis[0],dd,chiTrunc).transpose(0,2,1)
+
+    #print(f"Final B0: {psi[0]}")
+    #print(f"Final ncon (is it B norm?) {ncon([psi[0],np.conj(psi[0])],[[-1,1,2],[-2,1,2]])}")
+
+    print(f"Final norm: {LA.norm(utail@stail)}")
+    #print(inMPS.checkNormalized())
+    #print(f"{ inMPS.checkSVsAreOne() = }")
+    #print(ccan(psi,0))
 
     return Emin 

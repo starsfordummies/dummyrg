@@ -75,6 +75,10 @@ def build_right_env(psi: mps.myMPS, o: mpo.myMPO):
 
 
 def update_right_env(renv: list[np.ndarray], Bj: np.ndarray, wj: np.ndarray, jj: int ):
+    """ Contracts R(j+1) with the input B_{j+1}-W_{j+1} and builds R_j """
+
+    # FIXME: should we shift j back to j-1 for consistency with the L_env_update?
+
     """ Updates the right environment with the new matrix B[j] 
     corresponding to the j-th site. 
     So eg. if we feed an updated B3, we will build an updated contraction
@@ -88,12 +92,11 @@ def update_right_env(renv: list[np.ndarray], Bj: np.ndarray, wj: np.ndarray, jj:
     temp = ncon([wj, temp],[[-2,2,-4,4],[-1,2,-3,4]])
     renv[jj] = ncon([np.conj(Bj),temp],[[-1,1,4],[1,-2,-3,4]])
 
-    #print(f"updating R[{jj}]")
     return renv
 
 
 def build_environments(psi: mps.myMPS, o: mpo.myMPO) -> tuple[list[np.ndarray],list[np.ndarray]]:
-    # Build the left and right envs for DMRG 
+    """ Builds the left and right envs for psi and O """
 
     if o.DD != psi.DD: 
         raise ValueError(f"MPO and MPS don't have the same physical dimension (D={o.DD} vs {psi.DD}),  aborting")
