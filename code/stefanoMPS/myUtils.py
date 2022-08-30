@@ -124,7 +124,7 @@ def sncon(listArr, listInd) -> np.ndarray:
         raise ValueError
 
 
-def real_close(input: np.ndarray | np.complex128) -> np.ndarray | np.complex128 | np.float64: 
+def real_close(input: complex) -> complex: 
     return np.real_if_close(input)
 
 

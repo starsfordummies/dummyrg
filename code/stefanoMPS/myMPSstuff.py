@@ -1,4 +1,4 @@
-# Last modified: 2022/08/30 13:08:14
+# Last modified: 2022/08/30 14:54:50
 
 from __future__ import annotations
 
@@ -242,11 +242,6 @@ class myMPS:
 
             _Alist[jj] = np.reshape(q,(chiA[jj],DD,chiA[jj+1]))
 
-            #print(f"shape of r: {np.shape(r)}")
-            #if jj == LL-1: print(f"final r sq: {r @ r}")
-
-        # The last factor should just give the normalization
-        #tail = S @ Vdag 
     
         ###############################################
         ###############################################
@@ -299,13 +294,6 @@ class myMPS:
         
         
         curr_form = 'R'
-
-        
-        # if np.abs( normsq - 1.) < epsNorm and self.checkSVsAreOne():
-        #     self.normalized = 1 
-        # else:
-        #     self.normalized = 0 
-   
 
      
         # """
@@ -383,7 +371,7 @@ class myMPS:
 
 
 
-    def set_form(self, mode: str = 'R'):
+    def set_form(self, mode: str = 'R') -> str:
 
 
         """ According to the mode selected, 
@@ -488,9 +476,10 @@ class myMPS:
         idxList.extend(indicesMc)
 
         # norm = ncon([self.MPS, MPSconj], [indicesM,indicesMc])
-        norm = rc(ncon(toContr,idxList))
+        normsq = rc(ncon(toContr,idxList))
+        
 
-        return norm
+        return np.sqrt(normsq)
 
 
 
