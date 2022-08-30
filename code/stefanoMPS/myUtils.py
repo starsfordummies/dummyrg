@@ -1,6 +1,7 @@
 import numpy as np 
 import scipy as sp 
 from ncon import ncon 
+import logging
 
 def checkIdMatrix(ainp: np.ndarray, epstol: float = 1e-14, verbose: bool = True) -> bool:
     """Checks if an array is an identity matrix (within machine precision)"""
@@ -142,7 +143,7 @@ def robust_svd(a,
         except np.linalg.LinAlgError:
             # 'gesdd' failed to converge, so we continue with the backup plan
             if warn:
-                print("SVD with lapack_driver 'gesdd' failed. Use backup 'gesvd'")
+                logging.warning("SVD with lapack_driver 'gesdd' failed. Use backup 'gesvd'")
             pass
   
     return sp.linalg.svd(a, full_matrices, compute_uv, overwrite_a, check_finite, 'gesvd')

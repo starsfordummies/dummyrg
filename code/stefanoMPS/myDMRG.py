@@ -3,6 +3,8 @@ import myMPOstuff as mpo
 import myEnvironmentsMPO as envs
 
 import numpy as np 
+from tqdm import tqdm 
+
 from myUtils import sncon as ncon
 
 from scipy import linalg as LA 
@@ -50,7 +52,9 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
         toleig = toleig*0.1
       
         # >>>>>>>>>>> (L-R sweep ) >>>>>>>>>>>>>
-        for jj in range(0,LL-1): 
+        progress_bar = tqdm(range(0,LL-1))
+        for jj in progress_bar:
+        #for jj in range(0,LL-1): 
             #print(f"[L] ncon L({jj}) W({jj}) W({jj+1}) R({jj+2}) updating A[{jj}] B[{jj+1}]")
 
             dimH = chis[jj]*dd*dd*chis[jj+2]
@@ -100,7 +104,9 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
 
         envs.update_right_env(re, psi[LL-1], ww[LL-1], LL-1)
 
-        for jj in range(LL-2,0,-1): 
+        progress_bar = tqdm(range(LL-2,0,-1))
+        for jj in progress_bar:
+        #for jj in range(LL-2,0,-1): 
         
             dimH = chis[jj-1]*dd*dd*chis[jj+1]
             def HthetaR(th: np.ndarray) -> np.ndarray:

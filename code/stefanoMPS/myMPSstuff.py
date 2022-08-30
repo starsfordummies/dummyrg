@@ -1,4 +1,4 @@
-# Last modified: 2022/08/30 14:54:50
+# Last modified: 2022/08/30 15:41:06
 
 from __future__ import annotations
 
@@ -49,6 +49,8 @@ def plusState(LL: int=10) -> list[np.ndarray]:
     outMPS = [np.array(plus).reshape(chi,chi,d)]*LL
 
     return outMPS
+
+
 
 def bigEntState(LL: int=10) -> list[np.ndarray]:
     #TODO: implement a state with large entropy 
@@ -138,6 +140,7 @@ class myMPS:
 
         self.MPS: list[np.ndarray] = inputMPS  
 
+        # Build the bond dimension list
         mChi = [ np.shape(mm)[idx['vL']] for mm in inputMPS ]
         mChi.append(np.shape(inputMPS[-1])[idx['vR']])
       
@@ -227,7 +230,7 @@ class myMPS:
         
 
 
-        # NEW: QR 
+        # For the first sweep we do a QR decomp
 
         r = np.array(1.).reshape(1,1)
         for jj in range(0,LL):
