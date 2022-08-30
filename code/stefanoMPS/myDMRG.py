@@ -37,7 +37,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
     psi = inMPS.MPS
     SVs = inMPS.SV
 
-    toleig = 1e-4
+    toleig = 1e-3
 
     guessTheta = np.random.rand(chis[0]*dd*dd*chis[2])
 
@@ -68,7 +68,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
             lam0, eivec0 = LAS.eigsh(Heff, k=1, which='SA', v0=guessTheta , tol=toleig) 
             #, v0=psi_flat, tol=tol, ncv=N_min)
           
-            u, s, vdag, chiTrunc = mps.SVD_trunc(eivec0.reshape(chis[jj]*dd,dd*chis[jj+2]),1e-12,chiMax)
+            u, s, vdag, chiTrunc = mps.SVD_trunc(eivec0.reshape(chis[jj]*dd,dd*chis[jj+2]),1e-10,chiMax)
           
             sn = s / LA.norm(s)
             ss = np.diag(sn) 
@@ -110,14 +110,14 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
                 #return ncon([Lwtheta,wR], [[-1,2,-2,3,4],[-4,2,4,-3,3]]).reshape(dimH)
 
                 return ncon([le[jj-1], ww[jj-1], theta, ww[jj],re[jj+1]],
-                [[-1,1,2],[1,7,-2,3],[2,3,6,5],[7,4,-3,6],[-4,4,5]]).reshape(dimH)
+                    [[-1,1,2],[1,7,-2,3],[2,3,6,5],[7,4,-3,6],[-4,4,5]]).reshape(dimH)
 
 
             Heff = LAS.LinearOperator(shape=(dimH,dimH), matvec=HthetaR)
 
             lam0, eivec0 = LAS.eigsh(Heff, k=1, which='SA', v0=guessTheta, tol=toleig) 
 
-            u, s, vdag, chiTrunc = mps.SVD_trunc(eivec0.reshape(chis[jj-1]*dd,dd*chis[jj+1]),1e-16,chiMax)
+            u, s, vdag, chiTrunc = mps.SVD_trunc(eivec0.reshape(chis[jj-1]*dd,dd*chis[jj+1]),1e-14, chiMax)
 
             sn = s / LA.norm(s)
             ss = np.diag(sn) 

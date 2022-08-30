@@ -1,4 +1,5 @@
 import numpy as np 
+import scipy as sp 
 from ncon import ncon 
 
 def checkIdMatrix(ainp: np.ndarray, epstol: float = 1e-14, verbose: bool = True) -> bool:
@@ -126,3 +127,23 @@ def sncon(listArr, listInd) -> np.ndarray:
 def real_close(input: np.ndarray | np.complex128) -> np.ndarray | np.complex128 | np.float64: 
     return np.real_if_close(input)
 
+
+def robust_svd(a,
+        full_matrices=True,
+        compute_uv=True,
+        overwrite_a=False,
+        check_finite=True,
+        lapack_driver='gesdd',
+        warn=True):
+  
+    if lapack_driver == 'gesdd':
+        try:
+            return sp.linalg.svd(a, full_matrices, compute_uv, False, check_finite)
+        except np.linalg.LinAlgError:
+            # 'gesdd' failed to converge, so we continue with the backup plan
+            if warn:
+                print("SVD with lapack_driver 'gesdd' failed. Use backup 'gesvd'")
+            pass
+  
+    return sp.linalg.svd(a, full_matrices, compute_uv, overwrite_a, check_finite, 'gesvd')
+   

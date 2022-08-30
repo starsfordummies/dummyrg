@@ -1,10 +1,11 @@
-# Last modified: 2022/08/29 17:26:29
+# Last modified: 2022/08/30 12:16:05
 
 from __future__ import annotations
 
 import numpy as np
 #from numpy import linalg as LA
-from numpy.linalg import svd, qr 
+from numpy.linalg import qr 
+from myUtils import robust_svd as rsvd
 from myUtils import sncon as ncon
 from myUtils import real_close as rc
 import logging
@@ -67,7 +68,7 @@ def bigEntState(LL: int=10) -> list[np.ndarray]:
 def SVD_trunc(M: np.ndarray, epsTrunc: float, chiMax: int) -> tuple[np.ndarray,np.ndarray,np.ndarray, int]:
     """ Performs SVD and truncates at a given epsTrunc / chiMax """
 
-    u, s, Vdag = svd(M,full_matrices=False)  
+    u, s, Vdag = rsvd(M,full_matrices=False)  
 
     Strunc = [sv for sv in s[:chiMax] if sv > epsTrunc]
     
@@ -281,7 +282,7 @@ class myMPS:
         # We should still reshape here!
         Mtr = np.reshape(Mtilde, (chiB[0],chiB[1]*DD))
 
-        u, s, Vdag = svd(Mtr,full_matrices=False)  
+        u, s, Vdag = rsvd(Mtr,full_matrices=False)  
         
         _Blist[0] = np.reshape(Vdag,(chiB[0],DD,chiB[1]))
 
@@ -324,7 +325,7 @@ class myMPS:
         
                 Mtilde = ncon([np.diag(s), Vdag, _Blist[jj]], [[-1,1],[1,2],[2,-2,-3]])  
                 Mtr = np.reshape(Mtilde, (chiA[jj]*DD, chiB[jj+1]))
-                u, s, Vdag = svd(Mtr,full_matrices=False)  
+                u, s, Vdag = rsvd(Mtr,full_matrices=False)  
                 chiA[jj+1] = np.size(s)
                 _Alist[jj] = np.reshape(u,(chiA[jj],DD,chiA[jj+1]))
                 _Slist[jj+1] = s
