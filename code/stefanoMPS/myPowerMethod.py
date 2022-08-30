@@ -55,7 +55,7 @@ def power_method(MPO: mpo.myMPO, startMPS: mps.myMPS, chiM: int, iters: int = 20
         if curr_chi > max_chi_reached: max_chi_reached = curr_chi
         progress_bar.set_description(f"{jj}, chi/max {curr_chi}/{max_chi_reached}")
 
-        ents = oPsi.getEntropies(numSVs = chiM)
+        ents = oPsi.getEntropies(checkCan=False)
         ent_new = ents[midchain]
     
         de = abs(ent_mid - ent_new)
