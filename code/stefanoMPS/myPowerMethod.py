@@ -10,7 +10,7 @@ import myMPOMPS as mpomps
 # For pretty progress bars 
 from tqdm import tqdm  
 
-def power_method(MPO: mpo.myMPO, startMPS: mps.myMPS, chiM: int, iters: int = 200, HMPO: mpo.myMPO | int = 0, full_ents: bool = False): #-> (myMPS, list, list, list, list):
+def power_method(MPO: mpo.myMPO, startMPS: mps.myMPS, chiM: int, iters: int = 200, HMPO: any = 0, full_ents: bool = False): #-> (myMPS, list, list, list, list):
 
    
     if not isinstance(HMPO, mpo.myMPO):
@@ -100,7 +100,7 @@ def power_method(MPO: mpo.myMPO, startMPS: mps.myMPS, chiM: int, iters: int = 20
 
 
 
-def power_method_untilconverged(MPO: mpo.myMPO, startMPS, chiM: int, HMPO: mpo.myMPO | int = 0, full_ents: bool = False, epsConv = 1e-4):
+def power_method_untilconverged(MPO: mpo.myMPO, startMPS, chiM: int, HMPO: any = 0, full_ents: bool = False, epsConv = 1e-4):
     nSteps = 50
     oPsi, iter, entropies, devec, energies = power_method(MPO, startMPS, chiM, nSteps, HMPO, full_ents)
     nloop = 0 
