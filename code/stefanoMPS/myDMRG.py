@@ -4,7 +4,7 @@ import myEnvironmentsMPO as envs
 
 import numpy as np 
 from myUtils import sncon as ncon
-#from myUtils import checkCanonical as ccan
+
 from scipy import linalg as LA 
 import scipy.sparse.linalg as LAS
 
@@ -42,6 +42,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
     guessTheta = np.random.rand(chis[0]*dd*dd*chis[2])
 
     Emin_prev = 1e10
+    midentr_prev = 1e10
 
     for ns in range(0,nsweeps):
 
@@ -117,7 +118,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
 
             lam0, eivec0 = LAS.eigsh(Heff, k=1, which='SA', v0=guessTheta, tol=toleig) 
 
-            u, s, vdag, chiTrunc = mps.SVD_trunc(eivec0.reshape(chis[jj-1]*dd,dd*chis[jj+1]),1e-14, chiMax)
+            u, s, vdag, chiTrunc = mps.SVD_trunc(eivec0.reshape(chis[jj-1]*dd,dd*chis[jj+1]),1e-10, chiMax)
 
             sn = s / LA.norm(s)
             ss = np.diag(sn) 
@@ -139,12 +140,17 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
        
         print(f"chis = {inMPS.chis}")
 
+        midentr = inMPS.getEntropies(checkCan = False)[LL//2]
+     
+      
         if(abs(Emin - Emin_prev) < 1e-13):
             print(f"Converged after {ns+1} sweeps")
+            print(f"deltaS = {midentr - midentr_prev}")
             break
         else: 
-            print(f"Nsweep = {ns}, En = {Emin}, deltaE = {abs(Emin - Emin_prev)} ")
+            print(f"Nsweep = {ns}, En = {Emin}, deltaE = {abs(Emin - Emin_prev)}, deltaSmid = {midentr - midentr_prev}")
             Emin_prev = Emin
+        midentr_prev = midentr
 
     # Do a final SVD to make the MPS fully right-canonical 
     utail, stail, vdag = LA.svd( (u@ss).reshape(chis[0],dd*chiTrunc), full_matrices=False)

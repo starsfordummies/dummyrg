@@ -1,4 +1,4 @@
-# Last modified: 2022/08/30 12:16:05
+# Last modified: 2022/08/30 13:08:14
 
 from __future__ import annotations
 
@@ -498,17 +498,15 @@ class myMPS:
 
 
 
-    def getEntropies(self) -> list[float]:
+    def getEntropies(self, checkCan: bool = True) -> list[float]:
         # Puts in canonical form if necessary and extracts the entropies 
-        if not self.canon:  
+        if checkCan and not self.canon:  
             numSVs = np.max(self.chis)
             logging.warning(f"Putting in canonical form and truncating at {numSVs}")
             self.bringCan(chiMax = numSVs, epsTrunc=1e-14)
         
         ents = []
         for lambdas in self.SV:
-            #si = sum([-lam*np.log(lam) for lam in lambdas])
-            #print(lambdas)
             ents.append(sum([-lam**2 *np.log(lam**2) for lam in lambdas]))
         
         return ents

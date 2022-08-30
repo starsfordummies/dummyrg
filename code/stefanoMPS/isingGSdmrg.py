@@ -28,7 +28,7 @@ gg = 1.1
 
 # Do it with tenpy 
 E_tenpy, psi_tenpy, _ = example_DMRG_tf_ising_finite(LLL, gg, chiM)
-Smid_tenpy = psi_tenpy.entanglement_entropy()
+S_tenpy = psi_tenpy.entanglement_entropy()
 
 
 
@@ -39,20 +39,21 @@ Hising = mpo.myMPO(IsingMPO(LLL, J=1., g=gg))
 Emin1 = mpomps.expValMPO(psi, Hising)
 
 
-# with cProfile.Profile() as pr:
+#with cProfile.Profile() as pr:
 
 start = timer()
-Emin2 = dmrg.findGS_DMRG(Hising, psi, chiMax = chiM, nsweeps = 5)
+Emin2 = dmrg.findGS_DMRG(Hising, psi, chiMax = chiM, nsweeps = 10)
 end = timer()
+
 print(timedelta(seconds=end-start))
 sAfterDMRG = psi.getEntropies()
 
 Emin3 = mpomps.expValMPO(psi, Hising)
 
 print(f"Before DMRG: {Emin1} \n After DMRG: {Emin2} \n DMRG+Norm: {Emin3} \n Tenpy: {E_tenpy}")
-print(f"EE tenpy:   {Smid_tenpy}\n after DMRG: {sAfterDMRG}\n after norm: {psi.getEntropies()[(LLL-1)//2]}")
+print(f"EE tenpy:\n {S_tenpy}\n after DMRG: \n {sAfterDMRG}")
 
-# stats = pstats.Stats(pr)
-# stats.sort_stats(pstats.SortKey.TIME)
-# #stats.print_stats()
-# stats.dump_stats(filename="profi_ising.prof")
+#stats = pstats.Stats(pr)
+#stats.sort_stats(pstats.SortKey.TIME)
+#stats.print_stats()
+#stats.dump_stats(filename="profi_ising.prof")
