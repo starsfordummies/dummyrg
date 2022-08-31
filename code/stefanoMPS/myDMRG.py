@@ -52,7 +52,8 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
         toleig = toleig*0.1
       
         # >>>>>>>>>>> (L-R sweep ) >>>>>>>>>>>>>
-        progress_bar = tqdm(range(0,LL-1))
+        progress_bar = tqdm(range(0,LL-1), ascii=" >=")
+        progress_bar.set_description(f"{ns}L>")
         for jj in progress_bar:
         #for jj in range(0,LL-1): 
             #print(f"[L] ncon L({jj}) W({jj}) W({jj+1}) R({jj+2}) updating A[{jj}] B[{jj+1}]")
@@ -104,7 +105,8 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
 
         envs.update_right_env(re, psi[LL-1], ww[LL-1], LL-1)
 
-        progress_bar = tqdm(range(LL-2,0,-1))
+        progress_bar = tqdm(range(LL-2,0,-1), ascii=' <=')
+        progress_bar.set_description(f"{ns}<R")
         for jj in progress_bar:
         #for jj in range(LL-2,0,-1): 
         
