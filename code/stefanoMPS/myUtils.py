@@ -141,7 +141,7 @@ def robust_svd(a,
         try:
             return sp.linalg.svd(a, full_matrices, compute_uv, False, check_finite)
         except np.linalg.LinAlgError:
-            # 'gesdd' failed to converge, so we continue with the backup plan
+            # 'gesdd' failed to converge, using backup algo 'gesvd'
             if warn:
                 logging.warning("SVD with lapack_driver 'gesdd' failed. Use backup 'gesvd'")
             pass

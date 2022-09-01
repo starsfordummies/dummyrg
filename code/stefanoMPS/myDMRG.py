@@ -36,6 +36,9 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
     re = envs.build_right_env(inMPS, inMPO)
 
     chis = inMPS.chis
+
+
+    # TODO: convert psi to working indices here and switch back at the end to the (vL,vR,d) convention?
     psi = inMPS.MPS
     SVs = inMPS.SV
 
