@@ -10,7 +10,8 @@ import myMPOMPS as mpomps
 # For pretty progress bars 
 from tqdm import tqdm  
 
-def power_method(MPO: mpo.myMPO, startMPS: mps.myMPS, chiM: int, iters: int = 200, HMPO: any = 0, full_ents: bool = False): #-> (myMPS, list, list, list, list):
+def power_method(MPO: mpo.myMPO, startMPS: any = 0, chiM: int = 50, iters: int = 200, HMPO: any = 0, full_ents: bool = False): #-> (myMPS, list, list, list, list):
+ 
     """ Power method. Input variables:
     - MPO:  the MPO we want to apply (can be exp(-eps*H for TEBD)
     - startMPS:  the starting MPS, if we give a non-mps (eg. 0) it just builds a random MPS to start
@@ -29,6 +30,10 @@ def power_method(MPO: mpo.myMPO, startMPS: mps.myMPS, chiM: int, iters: int = 20
 
     """
    
+    # if we don't input a starting MPS, generate a random one
+    if not isinstance(startMPS, mps.myMPS):
+        startMPS = mps.myMPS(mps.randMPS(LL=MPO.LL, chi=10, d=MPO.DD))
+
     if not isinstance(HMPO, mpo.myMPO):
         print("Returning energies as expectation value of the evolution MPO")
         enMPO = MPO
