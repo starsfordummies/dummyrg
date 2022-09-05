@@ -187,13 +187,14 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: i
     return Emin 
 
 
+
+
+
 if __name__ == "__main__":
-    import myMPOMPS as mpomps
 
     from myIsingMPO import IsingMPO
 
     from timeit import default_timer as timer
-    from datetime import timedelta
 
 
 

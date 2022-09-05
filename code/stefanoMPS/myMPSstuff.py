@@ -1,4 +1,4 @@
-# Last modified: 2022/08/30 15:41:06
+# Last modified: 2022/09/05 17:53:28
 
 from __future__ import annotations
 
@@ -141,21 +141,21 @@ class myMPS:
         self.MPS: list[np.ndarray] = inputMPS  
 
         # Build the bond dimension list
-        mChi = [ np.shape(mm)[idx['vL']] for mm in inputMPS ]
-        mChi.append(np.shape(inputMPS[-1])[idx['vR']])
+        _mChi = [ np.shape(mm)[idx['vL']] for mm in inputMPS ]
+        _mChi.append(np.shape(inputMPS[-1])[idx['vR']])
       
-        mSV = [np.array(1.)] * (LL+1) # Empty for now 
+        _mSV = [np.array(1.)] * (LL+1) # Empty for now 
 
         logging.info(f"MPS with length {LL} and physical d={DD}")
-        logging.info(f"chi {mChi}")
+        logging.info(f"chi {_mChi}")
 
 
         self.LL = LL  
         self.DD = DD  
   
-        self.chis = mChi
-        self.SV = mSV  
-        self.SVinv = mSV  
+        self.chis = _mChi
+        self.SV = _mSV  
+        self.SVinv = _mSV  
         self.curr_form = 'x'  # By default we're not in any particular form 
         self.canon = False # by default not canon unless we say it is 
         self.normalized = False

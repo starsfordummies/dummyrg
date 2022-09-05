@@ -3,6 +3,11 @@ import scipy.sparse.linalg as LA
 
 from tensornetwork import ncon
 
+
+from timeit import default_timer as timer
+from datetime import timedelta
+
+""" 
 def mv(v):
     return np.array([2*v[0], 3*v[1]])
 
@@ -38,3 +43,61 @@ print("Eigs")
 print(eigenvalues)
 print()
 print(eigenvectors)
+"""
+
+chiL = 200
+chiR = 220
+dd = 2 
+dMPO = 5
+
+dimH = chiL*dd*dd*chiR
+
+guessTheta = np.random.rand(chiL, dd, dd, chiR)
+
+le = np.random.rand(chiL, dMPO, chiL)
+re = np.random.rand(chiR, dMPO, chiR)
+ww = np.random.rand(dMPO,dMPO,dd,dd)
+ww = ww + ww.conj().transpose(1,0,3,2)
+
+toleig = 1e-2
+#theta = th.reshape(chiL, dd, dd, chiR)
+
+
+def HthetaL(th: np.ndarray) -> np.ndarray:
+    #print(np.shape(th))
+    th = th.reshape(chiL,dd,dd,chiR)
+    hth= ncon([le, ww, th, ww, re],
+        [[-1,1,2],[1,7,-2,3],[2,3,6,5],[7,4,-3,6],[-4,4,5]]).reshape(dimH)
+    #print(np.shape(hth))
+    return hth
+
+Heff = LA.LinearOperator((dimH,dimH), matvec=HthetaL)
+
+start = timer()
+lam0, eivec0 = LA.eigsh(Heff, k=1, which='SA', v0=guessTheta , tol=toleig, ncv=3)
+end = timer()
+print(lam0,end-start) 
+start = timer()
+lam0, eivec0 = LA.eigsh(Heff, k=1, which='SA', v0=guessTheta , tol=toleig, ncv=5)
+end = timer()
+print(lam0,end-start) 
+
+start = timer()
+lam0, eivec0 = LA.eigsh(Heff, k=1, which='SA', v0=guessTheta , tol=toleig, ncv=10)
+end = timer()
+print(lam0,end-start) 
+
+start = timer()
+lam0, eivec0 = LA.eigsh(Heff, k=1, which='SA', v0=guessTheta , tol=toleig, ncv=20)
+end = timer()
+print(lam0,end-start) 
+
+start = timer()
+lam0, eivec0 = LA.eigsh(Heff, k=1, which='SA', v0=guessTheta , tol=toleig, ncv=30)
+end = timer()
+print(lam0,end-start) 
+
+start = timer()
+lam0, eivec0 = LA.eigsh(Heff, k=1, which='SA', v0=guessTheta , tol=toleig, ncv=40)
+end = timer()
+print(lam0,end-start) 

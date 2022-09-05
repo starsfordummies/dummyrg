@@ -1,0 +1,7 @@
+My conventions for MPS/MPO/bonds/envs 
+
+
+
+.X0..[A0]---X1----[A1]---X2----[A2]----X3-----[A3]----X4----[A4]----X5----[A5]..X6.
+
+ [L0]
