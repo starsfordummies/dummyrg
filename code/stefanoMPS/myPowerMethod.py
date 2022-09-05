@@ -11,7 +11,23 @@ import myMPOMPS as mpomps
 from tqdm import tqdm  
 
 def power_method(MPO: mpo.myMPO, startMPS: mps.myMPS, chiM: int, iters: int = 200, HMPO: any = 0, full_ents: bool = False): #-> (myMPS, list, list, list, list):
+    """ Power method. Input variables:
+    - MPO:  the MPO we want to apply (can be exp(-eps*H for TEBD)
+    - startMPS:  the starting MPS, if we give a non-mps (eg. 0) it just builds a random MPS to start
+    - chiM:  maximum chi we want to reach
+    - iters: max number of iterations (the algo will end earlier if some convergence is reached)
+    - HMPO: MPO whose exp value we want to compute and return as "energies" - defaults to MPO if none given
+    - full_ents:  whether we want to save the time evolution of the entropies, or just return the final value
 
+    Returns:
+        oPsi : the final wave-function
+        iter : array labelling the number of iterations if we want to follow time time evol
+        Svec : list (or list of lists if we full_entropies) containing the entropies
+        devec : list labelling the deltaS at each step
+        energies : expectation value of HMPO at each timestep
+        max_chi_reached : the maximum bond dimension reached 
+
+    """
    
     if not isinstance(HMPO, mpo.myMPO):
         print("Returning energies as expectation value of the evolution MPO")
@@ -93,7 +109,7 @@ def power_method(MPO: mpo.myMPO, startMPS: mps.myMPS, chiM: int, iters: int = 20
     else:
         Svec = ent_mids
 
-    return oPsi, iter, Svec, devec, energies 
+    return oPsi, iter, Svec, devec, energies, max_chi_reached 
 
 
 
