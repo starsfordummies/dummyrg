@@ -79,6 +79,21 @@ def build_perms(tensor: np.ndarray, n: int, perm: list, listPerms: list) -> list
 
 
 def equal_up_to_perm(t1: np.ndarray, t2: np.ndarray) -> bool:
+
+    """ Example usage: 
+
+    c0 = [i for i in range(0,len(s2))]
+    lps = []
+    build_perms(t2, len(s2), c0, lps)
+
+    print(lps)
+
+    for shuf in lps:
+        if alleq(t1,t2.transpose(shuf)):
+            print(f"Equal after reshuffling {shuf}")
+            return True
+
+    """
     # First check if shapes are different
     s1 = np.shape(t1)
     s2 = np.shape(t2)
@@ -99,20 +114,6 @@ def equal_up_to_perm(t1: np.ndarray, t2: np.ndarray) -> bool:
 
 
 
-""" Example usage: 
-
-  c0 = [i for i in range(0,len(s2))]
-  lps = []
-  build_perms(t2, len(s2), c0, lps)
-
-  print(lps)
-
-  for shuf in lps:
-    if alleq(t1,t2.transpose(shuf)):
-        print(f"Equal after reshuffling {shuf}")
-        return True
-
-"""
 
 
 def sncon(listArr, listInd) -> np.ndarray:

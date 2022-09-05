@@ -7,14 +7,15 @@ import numpy as np
 
 
 def init_env(LL: int):
+    """ Initializes left or right environment array of length L+1, filled with 1 """
     
     env = [np.array(1.).reshape(1,1,1)]*(LL+1)
     return env
 
 
+# TODO: option for building environments with "working" convention vL dd vR 
 
-
-def build_left_env(psi: mps.myMPS, o: mpo.myMPO):
+def build_left_env(psi: mps.myMPS, o: mpo.myMPO, workConv = False):
     
     # FIXME: we don't really need the last element of the L env, so we can truncate at [:-1]
 
@@ -23,10 +24,17 @@ def build_left_env(psi: mps.myMPS, o: mpo.myMPO):
     for jj, (Aj, Wj) in enumerate(zip(psi.MPS, o.MPO)):
         # mps: vL vR p*  | mpo : vL vR pU pD* 
         #print(f"ncon-ing L[{jj}] with A[{jj}] W[{jj}] A[{jj}]")
-        temp = ncon([left_env[jj], Aj], [[-1,-2,1],[1,-3,-4]])
-        temp = ncon([temp, Wj],[[-1,2,-3,4],[2,-2,-4,4]])
-        left_env[jj+1] = ncon([temp, np.conj(Aj)],[[1,-2,-3,4],[1,-1,4]])
+        #temp = ncon([left_env[jj], Aj], [[-1,-2,1],[1,-3,-4]])
+        #temp = ncon([temp, Wj],[[-1,2,-3,4],[2,-2,-4,4]])
+        #left_env[jj+1] = ncon([temp, np.conj(Aj)],[[1,-2,-3,4],[1,-1,4]])
 
+        if workConv:
+            # working convention: MPS tensor indices are (vL, ph, vR)
+            left_env[jj+1] = ncon([left_env[jj], Aj, Wj, np.conj(Aj)],
+                                [[],[],[3,-2,1,5],[2,1,-1]])
+        else:
+            left_env[jj+1] = ncon( [left_env[jj], Aj, Wj, np.conj(Aj)],
+                       [[4,2,1],[1,-3,3],[2,-2,5,3],[4,-1,5]])
     return left_env
 
 
@@ -41,14 +49,16 @@ def update_left_env(lenv: list[np.ndarray], Aj: np.ndarray, wj: np.ndarray, jj: 
 
     """
     
-    temp = ncon([lenv[jj], Aj], [[-1,-2,1],[1,-3,-4]])
-    temp = ncon([temp, wj],[[-1,2,-3,4],[2,-2,-4,4]])
+    #temp = ncon([lenv[jj], Aj], [[-1,-2,1],[1,-3,-4]])
+    #temp = ncon([temp, wj],[[-1,2,-3,4],[2,-2,-4,4]])
 
-    lenv[jj+1] = ncon([temp, np.conj(Aj)],[[1,-2,-3,4],[1,-1,4]])
+    #lenv[jj+1] = ncon([temp, np.conj(Aj)],[[1,-2,-3,4],[1,-1,4]])
 
+    lenv[jj+1] = ncon( [lenv[jj], Aj, wj, np.conj(Aj)],
+                       [[4,2,1],[1,-3,3],[2,-2,5,3],[4,-1,5]])
     #print(f"updating L[{jj+1}]")
 
-    return lenv # though we already updated it in place 
+    return 0 #lenv # though we already updated it in place 
 
 
 
@@ -63,9 +73,13 @@ def build_right_env(psi: mps.myMPS, o: mpo.myMPO):
         # mps: vL vR p*  | mpo : vL vR pU pD* 
         rjj = -jj-1 
 
-        temp = ncon([Bj, right_env[rjj]], [[-3,1,-4],[-1,-2,1]])
-        temp = ncon([Wj, temp],[[-2,2,-4,4],[-1,2,-3,4]])
-        right_env[rjj-1] = ncon([np.conj(Bj),temp],[[-1,1,4],[1,-2,-3,4]])
+        #temp = ncon([Bj, right_env[rjj]], [[-3,1,-4],[-1,-2,1]])
+        #temp = ncon([Wj, temp],[[-2,2,-4,4],[-1,2,-3,4]])
+        #right_env[rjj-1] = ncon([np.conj(Bj),temp],[[-1,1,4],[1,-2,-3,4]])
+
+        right_env[rjj-1] = ncon([right_env[rjj], Bj, Wj, np.conj(Bj)],
+                            [[4,2,1],[-3,1,3],[-2,2,5,3],[-1,4,5]])
+        #print(f"updating R[{rjj-1}]")
     return right_env
 
 
@@ -87,11 +101,14 @@ def update_right_env(renv: list[np.ndarray], Bj: np.ndarray, wj: np.ndarray, jj:
     """
     
 
-    temp = ncon([Bj, renv[jj+1]], [[-3,1,-4],[-1,-2,1]])
-    temp = ncon([wj, temp],[[-2,2,-4,4],[-1,2,-3,4]])
-    renv[jj] = ncon([np.conj(Bj),temp],[[-1,1,4],[1,-2,-3,4]])
+    #temp = ncon([Bj, renv[jj+1]], [[-3,1,-4],[-1,-2,1]])
+    #temp = ncon([wj, temp],[[-2,2,-4,4],[-1,2,-3,4]])
+    #renv[jj] = ncon([np.conj(Bj),temp],[[-1,1,4],[1,-2,-3,4]])
 
-    return renv
+    renv[jj] = ncon([renv[jj+1], Bj, wj, np.conj(Bj)],
+                            [[4,2,1],[-3,1,3],[-2,2,5,3],[-1,4,5]])
+
+    return 0
 
 
 def build_environments(psi: mps.myMPS, o: mpo.myMPO) -> tuple[list[np.ndarray],list[np.ndarray]]:

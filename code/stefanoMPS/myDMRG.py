@@ -13,8 +13,15 @@ import scipy.sparse.linalg as LAS
 
 
 
-def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int = 5) -> complex:
+def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: int = 5) -> complex:
     """ My DMRG algo, modifies in-place psi, returns the energy """
+
+    # TODO::
+    print("WARNING: FOR HERMITIAN MPO ONLY FOR NOW ")
+
+    # if we don't input a starting MPS, generate a random one
+    if not isinstance(inMPS, mps.myMPS):
+        inMPS = mps.myMPS(mps.randMPS(LL=inMPO.LL, chi=10, d=inMPO.DD))
 
 
     if inMPO.DD != inMPS.DD: 
@@ -42,7 +49,8 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
     psi = inMPS.MPS
     SVs = inMPS.SV
 
-    toleig = 1e-3
+    toleig = 1e-2
+    tolSVD = 1e-4
 
     guessTheta = np.random.rand(chis[0]*dd*dd*chis[2])
 
@@ -53,6 +61,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
 
         # As we go to later sweeps, progressively increase the precision in the eigensolver
         toleig = toleig*0.1
+        tolSVD = tolSVD*0.1
       
         # >>>>>>>>>>> (L-R sweep ) >>>>>>>>>>>>>
         progress_bar = tqdm(range(0,LL-1), ascii=" >=")
@@ -77,7 +86,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
             lam0, eivec0 = LAS.eigsh(Heff, k=1, which='SA', v0=guessTheta , tol=toleig) 
             #, v0=psi_flat, tol=tol, ncv=N_min)
           
-            u, s, vdag, chiTrunc = mps.SVD_trunc(eivec0.reshape(chis[jj]*dd,dd*chis[jj+2]),1e-10,chiMax)
+            u, s, vdag, chiTrunc = mps.SVD_trunc(eivec0.reshape(chis[jj]*dd,dd*chis[jj+2]),tolSVD,chiMax)
           
             sn = s / LA.norm(s)
             ss = np.diag(sn) 
@@ -98,7 +107,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
                 SVs[jj+1] = sn
 
             # update left env 
-            le = envs.update_left_env(le, psi[jj], ww[jj], jj)
+            envs.update_left_env(le, psi[jj], ww[jj], jj)
  
         # end left sweep
 
@@ -129,7 +138,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
 
             lam0, eivec0 = LAS.eigsh(Heff, k=1, which='SA', v0=guessTheta, tol=toleig) 
 
-            u, s, vdag, chiTrunc = mps.SVD_trunc(eivec0.reshape(chis[jj-1]*dd,dd*chis[jj+1]),1e-10, chiMax)
+            u, s, vdag, chiTrunc = mps.SVD_trunc(eivec0.reshape(chis[jj-1]*dd,dd*chis[jj+1]),tolSVD, chiMax)
 
             sn = s / LA.norm(s)
             ss = np.diag(sn) 
@@ -176,3 +185,24 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: mps.myMPS, chiMax: int, nsweeps: int 
     #print(ccan(psi,0))
 
     return Emin 
+
+
+if __name__ == "__main__":
+    import myMPOMPS as mpomps
+
+    from myIsingMPO import IsingMPO
+
+    from timeit import default_timer as timer
+    from datetime import timedelta
+
+
+
+    LLL=20
+    gg=0.9
+
+    Hising = mpo.myMPO(IsingMPO(LLL, J=1., g=gg))
+
+    start = timer()
+    Emin2 = findGS_DMRG(Hising, 0 , chiMax = 100, nsweeps = 5)
+    end = timer()
+    print(f"time: {end-start}")

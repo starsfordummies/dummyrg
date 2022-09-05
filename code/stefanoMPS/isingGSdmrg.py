@@ -16,12 +16,16 @@ import pstats
 from timeit import default_timer as timer
 from datetime import timedelta
 
+import logging
+logging.basicConfig()
+logging.getLogger().setLevel(logging.DEBUG)
+
 
 
 LLL = 30
 
 # maximum chi 
-chiM = 100
+chiM = 50
 
 gg = 1.1
 

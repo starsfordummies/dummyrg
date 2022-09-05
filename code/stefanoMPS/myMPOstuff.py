@@ -1,4 +1,4 @@
-# Last modified: 2022/08/25 16:00:08
+# Last modified: 2022/09/05 17:31:25
 
 import numpy as np
 import logging
@@ -72,9 +72,6 @@ class myMPO:
 
         logging.info(f"MPO with length {LL} and physical d={DD}")
         logging.info(f"chi {mChi}")
-
-
-
 
         self.LL = LL  
         self.DD = DD  
