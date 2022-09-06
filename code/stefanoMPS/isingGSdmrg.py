@@ -18,11 +18,11 @@ from datetime import timedelta
 
 import logging
 logging.basicConfig()
-logging.getLogger().setLevel(logging.DEBUG)
+#logging.getLogger().setLevel(logging.DEBUG)
 
 
 
-LLL = 30
+LLL = 20
 
 # maximum chi 
 chiM = 50
@@ -46,7 +46,7 @@ Hising = mpo.myMPO(IsingMPO(LLL, J=1., g=gg))
 
 Emin1 = mpomps.expValMPO(psi, Hising)
 
-doprofile = False
+doprofile = True
 
 if doprofile:
     with cProfile.Profile() as pr:
