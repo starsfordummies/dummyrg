@@ -275,7 +275,7 @@ for o in out:
         dtmin = np.average(dts)
         omin = o
     
-# do the change     
+# do the change    
 print("min::")
 print(omin)
 print(dtmin)
