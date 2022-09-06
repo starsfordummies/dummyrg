@@ -1,6 +1,6 @@
 import numpy as np 
 import scipy as sp 
-from ncon import ncon 
+from tensornetwork import ncon 
 import logging
 
 def checkIdMatrix(ainp: np.ndarray, epstol: float = 1e-14, verbose: bool = True) -> bool:
@@ -47,7 +47,7 @@ def alleq(tensor1: np.ndarray, tensor2:np.ndarray) -> np.bool_:
 
 
 
-def build_perms(tensor: np.ndarray, n: int, perm: list, listPerms: list) -> list:
+def build_tensor_perms(tensor: np.ndarray, n: int, perm: list, listPerms: list) -> list:
     
     outList = listPerms
 
@@ -76,6 +76,37 @@ def build_perms(tensor: np.ndarray, n: int, perm: list, listPerms: list) -> list
 
       #perm(tensor,n-1)
     
+
+
+def build_perms(n: int, perm: list, listPerms: list) -> list:
+    
+    outList = listPerms
+
+    if n == 2:
+      #print(f"doing last two with input {perm}")
+      outList.append(perm)
+      last = perm[:]
+      last[-2], last[-1] = last[-1], last[-2]
+      outList.append(last)
+
+    else: # n > 2
+      #print(perm)
+      #print(f"Starting from {perm[-n:]}")
+      for i, si in enumerate(perm[-n:]):
+          #print(i, si)
+          tperm = perm[:]
+          tperm[-n], tperm[-n+i] = tperm[-n+i], tperm[-n]
+          #print(f"Passing {tperm} to {n-1} buildperms")
+
+          build_perms(n-1, tperm, outList)
+
+          #print(f"output: {outList}")
+
+    return outList
+          
+
+      #perm(tensor,n-1)
+
 
 
 def equal_up_to_perm(t1: np.ndarray, t2: np.ndarray) -> bool:
@@ -149,3 +180,12 @@ def robust_svd(a,
   
     return sp.linalg.svd(a, full_matrices, compute_uv, overwrite_a, check_finite, 'gesvd')
    
+
+
+
+
+if __name__ == "__main__":
+    li1 = [1,2,3,4]
+    out = []
+    build_perms(4, li1, out)
+    print(out[10])
