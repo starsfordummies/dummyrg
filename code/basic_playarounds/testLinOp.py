@@ -264,7 +264,7 @@ for o in out:
         dts.append(dt)
 
     # Remove smallest and largest
-    print(dts)
+    #print(dts)
     dts.sort()
     dts.pop(0)
     dts.pop(-1)
@@ -275,6 +275,7 @@ for o in out:
         dtmin = np.average(dts)
         omin = o
     
-    print("min::")
-    print(omin)
-    print(dtmin)
+    
+print("min::")
+print(omin)
+print(dtmin)
