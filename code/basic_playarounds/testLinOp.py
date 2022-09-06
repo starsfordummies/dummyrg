@@ -225,8 +225,8 @@ out = []
 build_perms(len(li1), li1, out)
 
 
-chiL = 220
-chiR = 270
+chiL = 180
+chiR = 240
 dd = 2 
 dMPO = 5
 
@@ -242,12 +242,16 @@ ww = ww + ww.conj().transpose(1,0,3,2)
 toleig = 1e-3
 dtmin = 1000
 
+ordersafe = [[-1,1,2],[1,7,-2,3],[2,3,6,5],[7,4,-3,6],[-4,4,5]]
 for o in out:
     def HthetaOrder(th: np.ndarray) -> np.ndarray:
         #print(np.shape(th))
         th = th.reshape(chiL,dd,dd,chiR)
         order = [[-1,o[0],o[1]],[o[0],o[2],-2,o[3]],[o[1],o[3],o[4],o[5]],[o[2],o[6],-3,o[4]],[-4,o[6],o[5]]]
-        hth= ncon([le, ww, th, ww, re], order).reshape(dimH)
+        try:
+            hth= ncon([le, ww, th, ww, re], order).reshape(dimH)
+        except: 
+            hth = ncon([le, ww, th, ww, re], ordersafe).reshape(dimH)
         #[[-1,1,2],[1,7,-2,3],[2,3,6,5],[7,4,-3,6],[-4,4,5]]
         #print(np.shape(hth))
         return hth
@@ -258,13 +262,16 @@ for o in out:
     for i in range(0,8):
             
         start = timer()
-        lam0, eivec0 = LA.eigsh(HeffO, k=1, which='SA',v0=guessTheta, tol=toleig)
-        end = timer()
-        dt = end-start
-        dts.append(dt)
+        try:
+            lam0, eivec0 = LA.eigsh(HeffO, k=1, which='SA',v0=guessTheta, tol=toleig)
+            end = timer()
+            dt = end-start
+            dts.append(dt)
+        except: 
+            print(f"Failed for contraction order {o}")
 
     # Remove smallest and largest
-    print(dts)
+    #print(dts)
     dts.sort()
     dts.pop(0)
     dts.pop(-1)
@@ -275,6 +282,6 @@ for o in out:
         dtmin = np.average(dts)
         omin = o
     
-    print("min::")
-    print(omin)
-    print(dtmin)
+print("min::")
+print(omin)
+print(dtmin)
