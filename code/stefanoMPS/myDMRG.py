@@ -78,8 +78,11 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: i
                 #wR = ncon([ww[jj+1],re[jj+2]], [[-2,2,-4,-5],[-1,2,-3]])
 
                 #return ncon([Lwtheta,wR], [[-1,2,-2,3,4],[-4,2,4,-3,3]]).reshape(dimH)
+                # [3, 2, 1, 4, 6, 7, 5]
                 return ncon([le[jj], ww[jj], theta, ww[jj+1],re[jj+2]],
-                    [[-1,1,2],[1,7,-2,3],[2,3,6,5],[7,4,-3,6],[-4,4,5]]).reshape(dimH)
+                    [[-1, 3, 2], [3, 1, -2, 4], [2, 4, 5, 7], [1, 6, -3, 5], [-4, 6, 7]]).reshape(dimH)
+                   # [[-1,1,2],[1,7,-2,3],[2,3,6,5],[7,4,-3,6],[-4,4,5]]).reshape(dimH)
+
 
             Heff = LAS.LinearOperator((dimH,dimH), matvec=HthetaL)
 
@@ -131,7 +134,9 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: i
                 #return ncon([Lwtheta,wR], [[-1,2,-2,3,4],[-4,2,4,-3,3]]).reshape(dimH)
 
                 return ncon([le[jj-1], ww[jj-1], theta, ww[jj],re[jj+1]],
-                    [[-1,1,2],[1,7,-2,3],[2,3,6,5],[7,4,-3,6],[-4,4,5]]).reshape(dimH)
+                        [[-1, 3, 2], [3, 1, -2, 4], [2, 4, 5, 7], [1, 6, -3, 5], [-4, 6, 7]]).reshape(dimH)
+                   # [[-1,1,2],[1,7,-2,3],[2,3,6,5],[7,4,-3,6],[-4,4,5]]).reshape(dimH)
+
 
 
             Heff = LAS.LinearOperator(shape=(dimH,dimH), matvec=HthetaR)
@@ -198,8 +203,8 @@ if __name__ == "__main__":
 
 
 
-    LLL=20
-    gg=0.9
+    LLL=30
+    gg=1.0
 
     Hising = mpo.myMPO(IsingMPO(LLL, J=1., g=gg))
 

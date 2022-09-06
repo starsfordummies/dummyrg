@@ -9,12 +9,12 @@ import numpy as np
 
 from tenpy.networks.mps import MPS
 from tenpy.models.tf_ising import TFIChain
-from tenpy.models.spins import SpinModel
+#from tenpy.models.spins import SpinModel
 from tenpy.algorithms import dmrg
 
 
 
-def example_DMRG_tf_ising_finite(L, g, chimax = 50):
+def example_DMRG_tf_ising_finite(L, g, chimax = 50) -> tuple[float, MPS, TFIChain]:
     print("finite DMRG, transverse field Ising model")
     print("L={L:d}, g={g:.2f}".format(L=L, g=g))
     model_params = dict(L=L, J=1., g=g, bc_MPS='finite', conserve=None)
