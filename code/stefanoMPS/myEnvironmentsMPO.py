@@ -6,7 +6,7 @@ from myUtils import sncon as ncon
 import numpy as np 
 
 
-def init_env(LL: int):
+def init_env(LL: int) -> list[np.ndarray]:
     """ Initializes left or right environment array of length L+1, filled with 1 """
     
     env = [np.array(1.).reshape(1,1,1)]*(LL+1)
@@ -21,7 +21,7 @@ def build_left_env(psi: mps.myMPS, o: mpo.myMPO, workConv = False):
 
     left_env = init_env(psi.LL)
 
-    for jj, (Aj, Wj) in enumerate(zip(psi.MPS, o.MPO)):
+    for jj, (Aj, Wj) in enumerate(zip(psi.MPS[:-1], o.MPO[:-1])):
         # mps: vL vR p*  | mpo : vL vR pU pD* 
 
         if workConv:
@@ -36,7 +36,7 @@ def build_left_env(psi: mps.myMPS, o: mpo.myMPO, workConv = False):
 
 
 def update_left_env(lenv: list[np.ndarray], Aj: np.ndarray, wj: np.ndarray, jj: int ):
-    """ Updates the left environment with the new matrix A[j]
+    """ Updates lenv[jj+1] using lenv[j],A[j],W[j] 
      corresponding to the j-th site.
     So eg. if we feed an updated A3, we will build an updated contraction
       / A3*-       /-
@@ -49,7 +49,7 @@ def update_left_env(lenv: list[np.ndarray], Aj: np.ndarray, wj: np.ndarray, jj: 
                        [[4,2,1],[1,-3,3],[2,-2,5,3],[4,-1,5]])
     #print(f"updating L[{jj+1}]")
 
-    return 0 #lenv # though we already updated it in place 
+    return 0 
 
 
 
@@ -60,7 +60,7 @@ def build_right_env(psi: mps.myMPS, o: mpo.myMPO):
 
     right_env = init_env(psi.LL)
 
-    for jj, (Bj, Wj) in enumerate(zip(psi.MPS[::-1], o.MPO[::-1])):
+    for jj, (Bj, Wj) in enumerate(zip(psi.MPS[:0:-1], o.MPO[:1:-1])):
         # mps: vL vR p*  | mpo : vL vR pU pD* 
         rjj = -jj-1 
 
@@ -75,12 +75,7 @@ def build_right_env(psi: mps.myMPS, o: mpo.myMPO):
 
 
 def update_right_env(renv: list[np.ndarray], Bj: np.ndarray, wj: np.ndarray, jj: int ):
-    """ Contracts R(j+1) with the input B_{j+1}-W_{j+1} and builds R_j """
-
-    # FIXME: should we shift j back to j-1 for consistency with the L_env_update?
-
-    """ Updates the right environment with the new matrix B[j] 
-    corresponding to the j-th site. 
+    r""" Builds renv[j] by contracting R(j+1) with the input B_{j+1}-W_{j+1} 
     So eg. if we feed an updated B3, we will build an updated contraction
     - B2*-\\       \
     - W2-- R3  =   -R2 
