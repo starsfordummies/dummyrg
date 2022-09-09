@@ -23,10 +23,6 @@ def build_left_env(psi: mps.myMPS, o: mpo.myMPO, workConv = False):
 
     for jj, (Aj, Wj) in enumerate(zip(psi.MPS, o.MPO)):
         # mps: vL vR p*  | mpo : vL vR pU pD* 
-        #print(f"ncon-ing L[{jj}] with A[{jj}] W[{jj}] A[{jj}]")
-        #temp = ncon([left_env[jj], Aj], [[-1,-2,1],[1,-3,-4]])
-        #temp = ncon([temp, Wj],[[-1,2,-3,4],[2,-2,-4,4]])
-        #left_env[jj+1] = ncon([temp, np.conj(Aj)],[[1,-2,-3,4],[1,-1,4]])
 
         if workConv:
             # working convention: MPS tensor indices are (vL, ph, vR)
@@ -49,11 +45,6 @@ def update_left_env(lenv: list[np.ndarray], Aj: np.ndarray, wj: np.ndarray, jj: 
 
     """
     
-    #temp = ncon([lenv[jj], Aj], [[-1,-2,1],[1,-3,-4]])
-    #temp = ncon([temp, wj],[[-1,2,-3,4],[2,-2,-4,4]])
-
-    #lenv[jj+1] = ncon([temp, np.conj(Aj)],[[1,-2,-3,4],[1,-1,4]])
-
     lenv[jj+1] = ncon( [lenv[jj], Aj, wj, np.conj(Aj)],
                        [[4,2,1],[1,-3,3],[2,-2,5,3],[4,-1,5]])
     #print(f"updating L[{jj+1}]")
@@ -72,10 +63,6 @@ def build_right_env(psi: mps.myMPS, o: mpo.myMPO):
     for jj, (Bj, Wj) in enumerate(zip(psi.MPS[::-1], o.MPO[::-1])):
         # mps: vL vR p*  | mpo : vL vR pU pD* 
         rjj = -jj-1 
-
-        #temp = ncon([Bj, right_env[rjj]], [[-3,1,-4],[-1,-2,1]])
-        #temp = ncon([Wj, temp],[[-2,2,-4,4],[-1,2,-3,4]])
-        #right_env[rjj-1] = ncon([np.conj(Bj),temp],[[-1,1,4],[1,-2,-3,4]])
 
         right_env[rjj-1] = ncon([right_env[rjj], Bj, Wj, np.conj(Bj)],
                             [[4,2,1],[-3,1,3],[-2,2,5,3],[-1,4,5]])
@@ -100,10 +87,6 @@ def update_right_env(renv: list[np.ndarray], Bj: np.ndarray, wj: np.ndarray, jj:
     - B2--/        / 
     """
     
-
-    #temp = ncon([Bj, renv[jj+1]], [[-3,1,-4],[-1,-2,1]])
-    #temp = ncon([wj, temp],[[-2,2,-4,4],[-1,2,-3,4]])
-    #renv[jj] = ncon([np.conj(Bj),temp],[[-1,1,4],[1,-2,-3,4]])
 
     renv[jj] = ncon([renv[jj+1], Bj, wj, np.conj(Bj)],
                             [[4,2,1],[-3,1,3],[-2,2,5,3],[-1,4,5]])
