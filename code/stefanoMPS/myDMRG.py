@@ -10,6 +10,7 @@ from myUtils import sncon as ncon
 from scipy import linalg as LA 
 import scipy.sparse.linalg as LAS
 
+import functools
 
 
 
@@ -57,6 +58,13 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: i
     Emin_prev = 1e10
     midentr_prev = 1e10
 
+
+    def Htheta_contract(theta, l,wl,wr,r):
+        theta = theta.reshape(np.shape(l)[0], dd, dd, np.shape(r)[0])
+        tlist = [l,  wl,   theta,    wr,    r]
+        clist =[ [-1, 3, 2], [3, 1, -2, 4], [2, 4, 5, 7], [1, 6, -3, 5], [-4, 6, 7]]
+        return ncon(tlist, clist).reshape(dimH)
+
     for ns in range(0,nsweeps):
 
         # As we go to later sweeps, progressively increase the precision in the eigensolver
@@ -72,6 +80,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: i
 
             dimH = chis[jj]*dd*dd*chis[jj+2]
 
+            """
             def HthetaL(th: np.ndarray):
                 theta = th.reshape(chis[jj], dd, dd, chis[jj+2])
                 #Lwtheta = ncon([le[jj], ww[jj], theta],[[-1,2,3],[2,-2,-3,4],[3,4,-4,-5]])
@@ -82,9 +91,13 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: i
                 return ncon([le[jj], ww[jj], theta, ww[jj+1],re[jj+2]],
                     [[-1, 3, 2], [3, 1, -2, 4], [2, 4, 5, 7], [1, 6, -3, 5], [-4, 6, 7]]).reshape(dimH)
                    # [[-1,1,2],[1,7,-2,3],[2,3,6,5],[7,4,-3,6],[-4,4,5]]).reshape(dimH)
+            """
 
+            HthetaL = functools.partial(Htheta_contract, l=le[jj],  wl=ww[jj], wr=ww[jj+1], r=re[jj+2])
+            
+            Heff = LAS.LinearOperator(shape=(dimH,dimH), matvec=HthetaL)
 
-            Heff = LAS.LinearOperator((dimH,dimH), matvec=HthetaL)
+            #Heff = LAS.LinearOperator((dimH,dimH), matvec=HthetaL)
 
             if isHermitian:
                 lam0, eivec0 = LAS.eigsh(Heff, k=1, which='SA', v0=guessTheta , tol=toleig) 
@@ -99,11 +112,11 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: i
             sn = s / LA.norm(s)
             ss = np.diag(sn) 
 
-            u = u.reshape(chis[jj],dd,chiTrunc).transpose(0,2,1)
+            ur = u.reshape(chis[jj],dd,chiTrunc).transpose(0,2,1)
             ssv = (ss @ vdag).reshape(chiTrunc,dd,chis[jj+2]).transpose(0,2,1)
 
 
-            psi[jj] = u
+            psi[jj] = ur
             chis[jj+1] = chiTrunc
             # It shouldn't be necessary to update the SVs here (except for the last link),
             # we'll do it in the right sweep
@@ -111,7 +124,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: i
             if jj < LL-2:
                 guessTheta = ncon([ssv,psi[jj+2]],[[-1,1,-2],[1,-4,-3]]) 
             else:  # reached the edge
-                guessTheta = ncon([psi[jj-1], (u@ss).reshape(chis[jj],dd,chiTrunc).transpose(0,2,1)],[[-1,1,-2],[1,-4,-3]])
+                guessTheta = ncon([psi[jj-1], ( u@ss ).reshape(chis[jj],dd,chiTrunc).transpose(0,2,1)],[[-1,1,-2],[1,-4,-3]])
                 SVs[jj+1] = sn
 
             # update left env 
@@ -128,22 +141,12 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: i
         progress_bar = tqdm(range(LL-2,0,-1), ascii=' <=')
         progress_bar.set_description(f"{ns}<R")
         for jj in progress_bar:
-        #for jj in range(LL-2,0,-1): 
         
             dimH = chis[jj-1]*dd*dd*chis[jj+1]
-            def HthetaR(th: np.ndarray) -> np.ndarray:
-                theta = th.reshape(chis[jj-1], dd, dd, chis[jj+1])
-                #Lwtheta = ncon([le[jj-1], ww[jj-1], theta],[[-1,2,3],[2,-2,-3,4],[3,4,-4,-5]])
-                #wR = ncon([ww[jj],re[jj+1]], [[-2,2,-4,-5],[-1,2,-3]])
-
-                #return ncon([Lwtheta,wR], [[-1,2,-2,3,4],[-4,2,4,-3,3]]).reshape(dimH)
-
-                return ncon([le[jj-1], ww[jj-1], theta, ww[jj],re[jj+1]],
-                        [[-1, 3, 2], [3, 1, -2, 4], [2, 4, 5, 7], [1, 6, -3, 5], [-4, 6, 7]]).reshape(dimH)
-                   # [[-1,1,2],[1,7,-2,3],[2,3,6,5],[7,4,-3,6],[-4,4,5]]).reshape(dimH)
 
 
-
+            HthetaR = functools.partial(Htheta_contract, l=le[jj-1],  wl=ww[jj-1], wr=ww[jj], r=re[jj+1])
+            
             Heff = LAS.LinearOperator(shape=(dimH,dimH), matvec=HthetaR)
 
             if isHermitian:
@@ -197,7 +200,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: i
     #print(f"{ inMPS.checkSVsAreOne() = }")
     #print(ccan(psi,0))
 
-    return Emin, psi
+    return Emin, inMPS
 
 
 
