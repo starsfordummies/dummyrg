@@ -65,6 +65,8 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: i
         clist =[ [-1, 3, 2], [3, 1, -2, 4], [2, 4, 5, 7], [1, 6, -3, 5], [-4, 6, 7]]
         return ncon(tlist, clist).reshape(dimH)
 
+
+
     for ns in range(0,nsweeps):
 
         # As we go to later sweeps, progressively increase the precision in the eigensolver
@@ -75,29 +77,15 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: i
         progress_bar = tqdm(range(0,LL-1), ascii=" >=")
         progress_bar.set_description(f"{ns}L>")
         for jj in progress_bar:
-        #for jj in range(0,LL-1): 
-            #print(f"[L] ncon L({jj}) W({jj}) W({jj+1}) R({jj+2}) updating A[{jj}] B[{jj+1}]")
+     
+            print(f"[L] ncon L({jj}) W({jj}) W({jj+1}) R({jj+2}) updating A[{jj}] B[{jj+1}]")
 
             dimH = chis[jj]*dd*dd*chis[jj+2]
 
-            """
-            def HthetaL(th: np.ndarray):
-                theta = th.reshape(chis[jj], dd, dd, chis[jj+2])
-                #Lwtheta = ncon([le[jj], ww[jj], theta],[[-1,2,3],[2,-2,-3,4],[3,4,-4,-5]])
-                #wR = ncon([ww[jj+1],re[jj+2]], [[-2,2,-4,-5],[-1,2,-3]])
-
-                #return ncon([Lwtheta,wR], [[-1,2,-2,3,4],[-4,2,4,-3,3]]).reshape(dimH)
-                # [3, 2, 1, 4, 6, 7, 5]
-                return ncon([le[jj], ww[jj], theta, ww[jj+1],re[jj+2]],
-                    [[-1, 3, 2], [3, 1, -2, 4], [2, 4, 5, 7], [1, 6, -3, 5], [-4, 6, 7]]).reshape(dimH)
-                   # [[-1,1,2],[1,7,-2,3],[2,3,6,5],[7,4,-3,6],[-4,4,5]]).reshape(dimH)
-            """
 
             HthetaL = functools.partial(Htheta_contract, l=le[jj],  wl=ww[jj], wr=ww[jj+1], r=re[jj+2])
             
             Heff = LAS.LinearOperator(shape=(dimH,dimH), matvec=HthetaL)
-
-            #Heff = LAS.LinearOperator((dimH,dimH), matvec=HthetaL)
 
             if isHermitian:
                 lam0, eivec0 = LAS.eigsh(Heff, k=1, which='SA', v0=guessTheta , tol=toleig) 
@@ -105,7 +93,6 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: i
                 lam0, eivec0 = LAS.eigs(Heff, k=1, which='SR', v0=guessTheta , tol=toleig) 
 
 
-            #, v0=psi_flat, tol=tol, ncv=N_min)
           
             u, s, vdag, chiTrunc = mps.SVD_trunc(eivec0.reshape(chis[jj]*dd,dd*chis[jj+2]),tolSVD,chiMax)
           
@@ -123,9 +110,10 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: i
 
             if jj < LL-2:
                 guessTheta = ncon([ssv,psi[jj+2]],[[-1,1,-2],[1,-4,-3]]) 
-            else:  # reached the edge
+            else:  # reached the edge: jj = L-2 - start going backwards
                 guessTheta = ncon([psi[jj-1], ( u@ss ).reshape(chis[jj],dd,chiTrunc).transpose(0,2,1)],[[-1,1,-2],[1,-4,-3]])
                 SVs[jj+1] = sn
+                psi[jj+1] = vdag.reshape(chiTrunc,dd,chis[jj+2]).transpose(0,2,1)
 
             # update left env 
             envs.update_left_env(le, psi[jj], ww[jj], jj)
@@ -138,9 +126,12 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: i
 
         envs.update_right_env(re, psi[LL-1], ww[LL-1], LL-1)
 
-        progress_bar = tqdm(range(LL-2,0,-1), ascii=' <=')
+        # TODO CHECK: end at 1 (so 2) or 0 (so ends at 1 ?)
+        progress_bar = tqdm(range(LL-2,1,-1), ascii=' <=')
         progress_bar.set_description(f"{ns}<R")
+
         for jj in progress_bar:
+            print(f"[R] ncon L({jj-1}) W({jj-1}) W({jj}) R({jj+1}) updating A[{jj-1}] B[{jj}]")
         
             dimH = chis[jj-1]*dd*dd*chis[jj+1]
 
