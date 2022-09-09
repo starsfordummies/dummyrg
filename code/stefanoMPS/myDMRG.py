@@ -13,7 +13,7 @@ import scipy.sparse.linalg as LAS
 
 
 
-def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: int = 5) -> complex:
+def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: int = 5, isHermitian="True") -> complex:
     """ My DMRG algo, modifies in-place psi, returns the energy """
 
     # TODO::
@@ -86,7 +86,12 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: i
 
             Heff = LAS.LinearOperator((dimH,dimH), matvec=HthetaL)
 
-            lam0, eivec0 = LAS.eigsh(Heff, k=1, which='SA', v0=guessTheta , tol=toleig) 
+            if isHermitian:
+                lam0, eivec0 = LAS.eigsh(Heff, k=1, which='SA', v0=guessTheta , tol=toleig) 
+            else:
+                lam0, eivec0 = LAS.eigs(Heff, k=1, which='SR', v0=guessTheta , tol=toleig) 
+
+
             #, v0=psi_flat, tol=tol, ncv=N_min)
           
             u, s, vdag, chiTrunc = mps.SVD_trunc(eivec0.reshape(chis[jj]*dd,dd*chis[jj+2]),tolSVD,chiMax)
@@ -141,7 +146,10 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: i
 
             Heff = LAS.LinearOperator(shape=(dimH,dimH), matvec=HthetaR)
 
-            lam0, eivec0 = LAS.eigsh(Heff, k=1, which='SA', v0=guessTheta, tol=toleig) 
+            if isHermitian:
+                lam0, eivec0 = LAS.eigsh(Heff, k=1, which='SA', v0=guessTheta , tol=toleig) 
+            else:
+                lam0, eivec0 = LAS.eigs(Heff, k=1, which='SR', v0=guessTheta , tol=toleig) 
 
             u, s, vdag, chiTrunc = mps.SVD_trunc(eivec0.reshape(chis[jj-1]*dd,dd*chis[jj+1]),tolSVD, chiMax)
 
@@ -189,7 +197,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: i
     #print(f"{ inMPS.checkSVsAreOne() = }")
     #print(ccan(psi,0))
 
-    return Emin 
+    return Emin, psi
 
 
 
