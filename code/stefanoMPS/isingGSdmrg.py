@@ -27,7 +27,7 @@ LLL = 20
 # maximum chi 
 chiM = 50
 
-gg = 1.1
+gg = 0.9
 
 
 # Do it with tenpy 
@@ -46,7 +46,7 @@ Hising = mpo.myMPO(IsingMPO(LLL, J=1., g=gg))
 
 Emin1 = mpomps.expValMPO(psi, Hising)
 
-doprofile = True
+doprofile = False
 
 if doprofile:
     with cProfile.Profile() as pr:
@@ -58,7 +58,7 @@ if doprofile:
 else: 
 
     start = timer()
-    Emin2 = dmrg.findGS_DMRG(Hising, psi, chiMax = chiM, nsweeps = 5)
+    Emin2 = dmrg.findGS_DMRG(Hising, psi, chiMax = chiM, nsweeps = 5, isHermitian=False)
     end = timer()
 
 print(timedelta(seconds=end-start))

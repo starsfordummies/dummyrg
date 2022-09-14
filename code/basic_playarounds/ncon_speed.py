@@ -5,6 +5,7 @@ from tensornetwork import ncon
 from timeit import default_timer as timer
 from datetime import timedelta
 
+""" 
 chiL = 30
 chiR = 45
 Wbond = 3
@@ -40,5 +41,21 @@ for i in range(1,10):
     wRR = ncon([wR,right], [[-2,2,-4,-5],[-1,2,-3]])
     ncon([Lwtheta,wRR], [[-1,2,-2,3,4],[-4,2,4,-3,3]])
 
+end = timer()
+print(timedelta(seconds=end-start))
+"""
+
+chiL = 1000 
+Dw = 4
+rjj = np.random.rand(chiL,Dw,chiL)
+bj = np.random.rand(chiL,chiL,2)
+wj = np.random.rand(Dw,Dw,2,2)
+
+o = [1,2,3,4,5]
+start = timer()
+for i in range(1,10):
+    ncon([rjj, bj, wj, np.conj(bj)],
+           # [[o[0],o[1],o[2]],[-3,o[2],o[3]],[-2,o[1],o[4],o[3]],[-1,o[0],o[4]]])
+                           [[4,2,1],[-3,1,3],[-2,2,5,3],[-1,4,5]])
 end = timer()
 print(timedelta(seconds=end-start))

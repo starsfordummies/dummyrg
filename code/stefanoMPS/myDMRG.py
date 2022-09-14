@@ -17,8 +17,10 @@ import functools
 def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: int = 5, isHermitian="True") -> complex:
     """ My DMRG algo, modifies in-place psi, returns the energy """
 
-    # TODO::
-    print("WARNING: FOR HERMITIAN MPO ONLY FOR NOW ")
+    if isHermitian:
+        print("Assuming HERMITIAN Ham")
+    else:
+        print("Assuming NON-Hermitian Ham")
 
     # if we don't input a starting MPS, generate a random one
     if not isinstance(inMPS, mps.myMPS):
@@ -76,7 +78,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: i
         progress_bar.set_description(f"{ns}L>")
         for jj in progress_bar:
      
-            print(f"[L] updating A[{jj}] - chi[{jj+1}] - (B[{jj+1}])")
+            #print(f"[L] updating A[{jj}] - chi[{jj+1}] - (B[{jj+1}])")
 
             dimH = chis[jj]*dd*dd*chis[jj+2]
 
@@ -112,7 +114,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: i
 
             if jj == LL-2:  # reached the edge: jj = L-2 - start going backwards
                 SVs[jj+1] = sn
-                print(f"updating B[{jj+1}]")
+                #print(f"updating B[{jj+1}]")
                 psi[jj+1] = vdag.reshape(chiTrunc,dd,chis[jj+2]).transpose(0,2,1)
 
             # update left env 
@@ -129,11 +131,11 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: i
         # TODO CHECK: end at 1 (so 2) or 0 (so ends at 1 ?)
         progress_bar = tqdm(range(LL-2,0,-1), ascii=' <=')
 
-        progress_bar.set_description(f"{ns}<R")
+        progress_bar.set_description(f"{ns}<R [{max(inMPS.chis)}]")
 
         # <<<<<<<<<<<<<  (R-L sweep) <<<<<<<<<<<<<<<<
         for jj in progress_bar:
-            print(f"[R] updating (A[{jj-1}]) - chi[{jj}] - B[{jj}]")
+            #print(f"[R] updating (A[{jj-1}]) - chi[{jj}] - B[{jj}]")
         
             dimH = chis[jj-1]*dd*dd*chis[jj+1]
 
@@ -164,7 +166,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: i
 
             
             if jj == 1:  # reached the edge: jj = 1 - start going forward
-                print(f"Updating A[{jj-1}]")
+                #print(f"Updating A[{jj-1}]")
                 psi[jj-1] = u.reshape(chis[jj-1],dd,chiTrunc).transpose(0,2,1)
 
 
@@ -176,7 +178,7 @@ def findGS_DMRG( inMPO : mpo.myMPO, inMPS: any = 0, chiMax: int = 50, nsweeps: i
 
             # end right sweep
        
-        print(f"chis = {inMPS.chis}")
+        #print(f"chis = {inMPS.chis}")
 
         midentr = inMPS.getEntropies(checkCan = False)[LL//2]
      
