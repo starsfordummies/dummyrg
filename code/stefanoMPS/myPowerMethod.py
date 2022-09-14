@@ -94,7 +94,7 @@ def power_method(MPO: mpo.myMPO, startMPS: any = 0, chiM: int = 50, iters: int =
         ent_mid = ent_new
 
         # maybe break earlier if we converge quickly
-        if de < 1e-12:
+        if de < 1e-12 and jj > 5:
             print(f"Looks converged after {jj} steps")
             break
 

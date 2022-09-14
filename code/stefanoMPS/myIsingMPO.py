@@ -1,4 +1,4 @@
-# Last modified: 2022/07/26 18:11:25
+# Last modified: 2022/09/14 17:27:43
 
 from math import sin, cos, sinh, cosh, sqrt
 
@@ -40,6 +40,8 @@ def IsingMPO(LL: int, J: float = 1., g: float = 0.4) -> list[np.array]:
 
     logging.info(f"Ising MPO, parameters: J={J} g={g},  shapes:")
     logging.info([np.shape(w) for w in Wmpo])
+
+    print(Wmpo[0])
     
     return Wmpo
 

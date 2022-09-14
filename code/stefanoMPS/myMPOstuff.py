@@ -1,4 +1,4 @@
-# Last modified: 2022/09/05 18:24:12
+# Last modified: 2022/09/14 16:38:47
 
 import numpy as np
 import logging
@@ -34,6 +34,18 @@ def randMPO(LL: int, chi: int=5, d: int=2) -> list:
     myMPO.append( np.random.rand(chi,1,d,d) + 1j*np.random.rand(chi,1,d,d))
 
     return myMPO
+
+
+
+def trivial_sx_MPO(LL: int) -> list:
+
+    sx = np.array([[0,1.],[1,0.]])
+    
+    myW = [sx] * LL
+ 
+    myW = [w.reshape(1,1,2,2) for w in myW]
+
+    return myW
 
     
 
