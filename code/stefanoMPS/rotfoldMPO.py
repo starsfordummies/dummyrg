@@ -62,7 +62,7 @@ def buildRotFoldMPO(Tmax: float, dt: float, gz: float = 0.2, rules: dict = {"mmo
 
 
     if fold:
-        print(f"**Folded MPO - time evolution up to t={LL*dt} in steps of {dt}")
+        print(f"**Folded MPO ")
 
         WWfold = ncon([WW,np.conj(WW)],[[-1,-3,-5,-7],[-2,-4,-6,-8]]).reshape(4,4,4,4)
 
