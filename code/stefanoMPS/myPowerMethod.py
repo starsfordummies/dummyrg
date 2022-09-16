@@ -10,7 +10,7 @@ import myMPOMPS as mpomps
 # For pretty progress bars 
 from tqdm import tqdm  
 
-def power_method(MPO: mpo.myMPO, startMPS: any = 0, chiM: int = 50, iters: int = 200, HMPO: any = 0, full_ents: bool = False): #-> (myMPS, list, list, list, list):
+def power_method(MPO: mpo.myMPO, startMPS: any = 0, chiM: int = 50, iters: int = 200, HMPO: any = 0, full_ents: bool = True, follow_evol: bool = False): #-> (myMPS, list, list, list, list):
  
     """ Power method. Input variables:
     - MPO:  the MPO we want to apply (can be exp(-eps*H for TEBD)
@@ -114,6 +114,11 @@ def power_method(MPO: mpo.myMPO, startMPS: any = 0, chiM: int = 50, iters: int =
     else:
         Svec = ent_mids
 
+    if not follow_evol:
+        #only return values for the last timestep 
+        Svec = Svec[-1] 
+        energies = energies[-1]
+
     return oPsi, iter, Svec, devec, energies, max_chi_reached 
 
 
@@ -121,14 +126,14 @@ def power_method(MPO: mpo.myMPO, startMPS: any = 0, chiM: int = 50, iters: int =
 
 
 
-def power_method_untilconverged(MPO: mpo.myMPO, startMPS, chiM: int, HMPO: any = 0, full_ents: bool = False, epsConv = 1e-4):
+def power_method_untilconverged(MPO: mpo.myMPO, startMPS, chiM: int, HMPO: any = 0, full_ents: bool = True, follow_evol: bool = False, epsConv = 1e-4):
     nSteps = 50
-    oPsi, iter, entropies, devec, energies = power_method(MPO, startMPS, chiM, nSteps, HMPO, full_ents)
+    oPsi, iter, entropies, devec, energies = power_method(MPO, startMPS, chiM, nSteps, HMPO, full_ents, follow_evol)
     nloop = 0 
     while devec[-1] > epsConv:
         nloop += 1 
         print(f"After running {iter[-1]} S is {entropies[-1]}, dS={devec[-1]}, running {nSteps} more iters  ")
-        oPsi, temp_iter, temp_entropies, temp_devec, temp_energies = power_method(MPO, oPsi, chiM, nSteps, HMPO, full_ents)
+        oPsi, temp_iter, temp_entropies, temp_devec, temp_energies = power_method(MPO, oPsi, chiM, nSteps, HMPO, full_ents, follow_evol)
         
         if nloop > 20 or temp_devec[-1] > devec[-1]:
             logging.warning(f"This is likely not converging after {nloop*nSteps} iterations, final dSmin = {devec[-1]}")
