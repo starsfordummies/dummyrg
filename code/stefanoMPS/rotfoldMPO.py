@@ -20,7 +20,7 @@ def buildRotFoldMPO(Tmax: float, dt: float, gz: float = 0.2, rules: dict = {"mmo
         LL = 2*round(Tmax/dt)
   
 
-    print(f"MPO length = {LL}, g_z = {gz}")
+    #print(f"MPO length = {LL}, g_z = {gz}")
     if LL == 0 or LL%2 != 0:
         raise ValueError(f"Odd length for the MPO, L={LL}")
 

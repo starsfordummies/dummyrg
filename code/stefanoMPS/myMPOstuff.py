@@ -1,4 +1,4 @@
-# Last modified: 2022/09/14 16:38:47
+# Last modified: 2022/09/15 18:16:51
 
 import numpy as np
 import logging
@@ -47,7 +47,6 @@ def trivial_sx_MPO(LL: int) -> list:
 
     return myW
 
-    
 
 
 
@@ -91,3 +90,25 @@ class myMPO:
         self.chis = mChi
 
         self.name = mponame
+
+
+
+def build_MPO_from_Ws(LL: int, Wl: np.ndarray, Ws : np.ndarray , Wr: np.ndarray) -> myMPO:
+    
+    # Sanity checks 
+    dL = np.shape(Wl)
+    dS = np.shape(Ws)
+    dR = np.shape(Wr)
+    if  (    dL[0] == dR[1] == 1 
+        and  dL[1] == dS[0] and dS[1] == dR[0] 
+        and  dL[2] == dL[3] == dS[2] == dS[3] == dR[2] == dR[3] 
+        ):
+                
+            Wmpo = [Ws]*LL
+            Wmpo[0] = Wl
+            Wmpo[-1] = Wr
+
+            return myMPO(Wmpo)
+    else: 
+        raise ValueError(f"Wrong MPO input: dimensions {dL}, {dS}, {dR}")
+            
