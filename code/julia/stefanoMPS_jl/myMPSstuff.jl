@@ -1,52 +1,61 @@
 using TensorOperations
 using LinearAlgebra
+using Tullio
 
 # Indices ordering: vL, vR, phys
 
-#Base.@kwdef 
-mutable struct myMPS
-    MPS::Array{Array{ComplexF64,3}}
+struct myMPS{T <: Number}
+    MPS::Vector{Array{T,3}}
+    # MPS::Array{Array{T,3} }
     LL::Int
     DD::Int
     chis::Vector{Int}
 
     SV::Vector{Vector{Float64}}
     SVinv::Vector{Vector{Float64}}
-    curr_form::Char 
+    #curr_form::Char 
 
 end
 
 
-function init_MPS(Mlist::Vector{Array{ComplexF64, 3}})
+function init_MPS(Mlist::Vector{Array{T, 3}}) where T <: Number 
     len = length(Mlist)
-    phys_d = size(Mlist[1])[3]
-    chis = [size(mj)[1] for mj in Mlist]
+    phys_d = size(Mlist[1],3)
+    chis = [size(mj,1) for mj in Mlist]
 
-    push!(chis, size(last(Mlist))[2])
+    push!(chis, size(last(Mlist),2))
 
     SV = [ones(1) for j in 1:len+1]
     SVinv = [ones(1) for j in 1:len+1]
 
-    curr_form = 'x'
+    #curr_form = 'x'
 
-    return myMPS(Mlist, len, phys_d, chis, SV, SVinv, curr_form)
+    return myMPS(Mlist, len, phys_d, chis, SV, SVinv)
 end
 
 
 
-function truncate_svd(M::Matrix{T}, chiMax::Int=100, epsTrunc::Float64=1e-14) where T <: Union{Float64,ComplexF64}
+function truncate_svd(M, chiMax::Int=100, epsTrunc::Float64=1e-14) 
     F = svd!(M)
-    filter!(sv->sv>epsTrunc, F.S)
-    cut = min(size(F.S)[1],chiMax)
+    filter!(sv -> sv>epsTrunc, F.S)
+    cut = min(size(F.S,1),chiMax)
     return view(F.U,:,1:cut), view(F.S,1:cut), view(F.Vt,1:cut,:), cut
 end
 
+function truncate_svd_svonly(M, chiMax::Int=100, epsTrunc::Float64=1e-14) 
+  
+    SVs = svdvals!(M)
+    filter!(sv -> sv>epsTrunc, SVs)
+    cut = min(size(SVs,1),chiMax)
+    return view(SVs,1:cut), cut
+end
 
 
 function bring_canonical!(inMPS::myMPS, chiMax::Int)
 
     LL = inMPS.LL
     work = [permutedims(m,(1,3,2)) for m in inMPS.MPS]
+    #println(typeof(work))
 
     DD = inMPS.DD
 
@@ -109,24 +118,112 @@ function bring_canonical!(inMPS::myMPS, chiMax::Int)
 
 
     # Put back the canonical form with re-swapped indices (L form)
-    inMPS.MPS = [permutedims(m,(1,3,2)) for m in work]
-    inMPS.SVinv = [s.^(-1) for s in inMPS.SV]
+    #inMPS.MPS = [permutedims(m,(1,3,2)) for m in work]
+    #inMPS.SVinv = [s.^(-1) for s in inMPS.SV]
 end
 
 
-function overlap(bra::myMPS, ket::myMPS, conjugate::Bool = true)::ComplexF64
+
+
+function bring_canonical_opt!(inMPS::myMPS{T}, chiMax::Int) where T <: Number
+
+    LL = inMPS.LL
+    #mps = inMPS.MPS
+    mps = permutedims.(inMPS.MPS,[(1,3,2)]) 
+  
+
+    DD = inMPS.DD
+    #mid = ceil(Int, LL/2)
+    #qrA = qr!(reshape(mps[mid],(inMPS.chis[mid]*DD,inMPS.chis[mid+1])))
+
+    for (jj, Aj) in enumerate(mps)
+        chiL, chiR = size(Aj,1), size(Aj,3)
+        qrA = qr!(reshape(Aj,(chiL*DD,chiR)))
+        chiT = size(qrA.R,1)
+
+        # Update the A[j] and chi[j+1] elements
+        inMPS.chis[jj+1] = chiT
+        mps[jj] = reshape(Matrix(qrA.Q),(chiL,DD,chiT))
+
+        if jj < LL # don't build next matrix for last element
+            @tensor next[vL,ph,vR] := qrA.R[vL,a]*mps[jj+1][a,ph,vR]
+            mps[jj+1] = next
+        end
+    end
+
+    # Now to one R sweep with truncation
+
+    for jj in reverse(eachindex(mps))
+        Aj = mps[jj]
+        chiL, chiR = size(Aj,1), size(Aj,3)
+
+        U, S, Vt, chiT = truncate_svd(reshape(Aj,chiL,DD*chiR), chiMax)
+
+        inMPS.chis[jj] = chiT
+
+        mps[jj] = reshape(Vt,(chiT,DD,chiR))
+
+        if jj > 1
+           @tensor next[vL,ph,vR] := mps[jj-1][vL,ph,a]*U[a,b]*Diagonal(S)[b,vR]
+           mps[jj-1] = next
+     
+        end
+
+    end
+
+    # And one final L sweep 
+
+    for (jj, Aj) in enumerate(mps)
+        chiL, chiR = size(Aj,1), size(Aj,3)
+
+        F = svd!(reshape(Aj,chiL*DD,chiR))
+        chiT = length(F.S)
+        inMPS.chis[jj+1] = chiT
+   
+        mps[jj] = reshape(Matrix(F.U),(chiL,DD,chiT))
+        #println("Setting A$(jj)")
+
+        if jj < LL
+            inMPS.SV[jj+1] = F.S
+            #println("setting SV$(jj+1)")
+            @tensor next[vL,ph,vR] := Diagonal(F.S)[vL,a]*F.Vt[a,b]*mps[jj+1][b,ph,vR]
+            mps[jj+1] = next
+        else
+
+        end
+    end
+
+
+    # Put back the canonical form with re-swapped indices (L form)
+    for jj in eachindex(inMPS.MPS) 
+        inMPS.MPS[jj] = permutedims(mps[jj],[1,3,2])
+    end
+    inMPS.SVinv .= [inv.(s) for s in inMPS.SV]
+end
+
+
+
+function overlap(bra::myMPS{T}, ket::myMPS{U}, conjugate::Bool = true) where {T <: Number, U <: Number}
     # < u | v > 
-    if conjugate 
-        braU = [conj(u) for u in bra.MPS]
+    if U <: Complex && conjugate 
+        braU = conj(bra.MPS) 
     else
         braU = bra.MPS
     end
 
     ketV = ket.MPS
 
-    blob = reshape([1.],(1,1))
-    for (u, v) in zip(braU, ketV)
-        @tensor blob[vRc,vR] := blob[a,b]*v[b,vR,d]*u[a,vRc,d] 
+    if T <: Complex || U <: Complex 
+        blob = reshape(ons(ComplexF64),(1,1))
+    else
+        blob = reshape(ones(Float64),(1,1))
+    end
+
+
+    #blob = Array{T,2}
+    #blob[1,1] = 1. +0im
+    for jj in eachindex(braU, ketV)
+        @tensor blob[vRc,vR] := blob[a,b]*ketV[jj][b,vR,d]*braU[jj][a,vRc,d] 
     end
 
     return tr(blob)
@@ -134,8 +231,7 @@ function overlap(bra::myMPS, ket::myMPS, conjugate::Bool = true)::ComplexF64
 end
 
 
-
-function get_norm_zip(inMPS::myMPS)::Float64
+function get_norm_zip(inMPS::myMPS)
     normsq = overlap(inMPS, inMPS, true)
     @assert imag(normsq)/real(normsq) < 1e-15 "complex norm?! $normsq"
 
@@ -167,16 +263,18 @@ end
         
 
 
-function random_MPS(LL::Int, DD::Int = 2) :: myMPS
-    mlist = [rand(ComplexF64,10,10,DD)  for j in 1:LL] 
-    mlist[1] = rand(ComplexF64,1,10,DD) 
-    mlist[LL] = rand(ComplexF64, 10,1,DD) 
+function random_mps(LL::Int, DD::Int = 2, T::DataType = ComplexF64) 
+    """ Returns a random myMPS object """
+    mlist = fill(rand(T,10,10,DD),LL)
+    mlist[1] = rand(T,1,10,DD) 
+    mlist[LL] = rand(T, 10,1,DD) 
 
     return init_MPS(mlist) 
 end
 
-function product_state(LL::Int)
 
+
+function product_state(LL::Int)
     chi =1 
     d = 2
     plus = fill(1/sqrt(d),d)
