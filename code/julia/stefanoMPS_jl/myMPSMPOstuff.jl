@@ -6,18 +6,16 @@ function apply_MPO!(inMPS::myMPS, inMPO::myMPO)
     Xas = inMPS.chis
     Xws = inMPO.chis
 
-    for (jj, (Aj, Wj)) in enumerate(zip(inMPS.MPS, inMPO.MPO))
+    for jj in eachindex(inMPS.MPS, inMPO.MPO)
         #@show size(Aj) size(Wj)
-        @tensor WAj[vLa,vLw,vRa,vRw,phU] := Aj[vLa,vRa,d]*Wj[vLw,vRw,phU,d] 
+        @tensor WAj[vLa,vLw,vRa,vRw,phU] := inMPS.MPS[jj][vLa,vRa,d]*inMPO.MPO[jj][vLw,vRw,phU,d] 
         XL = Xas[jj]*Xws[jj]
         XR = Xas[jj+1]*Xws[jj+1]
         inMPS.MPS[jj] = reshape(WAj,(XL, XR, DD))
         inMPS.chis[jj] = XL
-        #if jj == inMPS.LL
-        #    inMPS.chis[jj+1] = XR # should unnecessary, it should be 1 ..
-        #end
+
     end
-    #@show inMPS.chis
+ 
 
 end
 
@@ -34,8 +32,14 @@ end
 
 
 
-function power_method(U::myMPO, nIters::Int=10, chiMax::Int=50):: myMPS
-    psi = random_MPS(U.LL, U.DD)
+function power_method(U::myMPO, nIters::Int=10, chiMax::Int=50)
+    println("No starting MPS given, starting from a random one")
+    psi = random_mps(U.LL, U.DD)
+    power_method(U, psi, nIters, chiMax)
+end
+
+function power_method(U::myMPO, psi::myMPS, nIters::Int=10, chiMax::Int=50)
+    #psi = random_MPS(U.LL, U.DD)
 
     enPrev = 1e10
     deltaE = 0.

@@ -1,12 +1,13 @@
 using TensorOperations
 using LinearAlgebra
+using StaticArrays
+include("myMPSstuff.jl")
 
 # Indices ordering: vL, vR, phU, phD
 
 #Base.@kwdef 
-# TODO do we really want the MPO to be mutable ?
-struct myMPO
-    MPO::Array{Array{ComplexF64,4}}
+struct myMPO{T <: Number}
+    MPO::Vector{Array{T,4}}
     LL::Int
     DD::Int
     chis::Vector{Int}
@@ -35,7 +36,7 @@ function random_mpo_herm(LL::Int, DD::Int = 2)
 end
 
 
-function init_MPO(Mlist::Vector{Array{T, 4}})::myMPO where T <: Union{Float64, ComplexF64}
+function init_MPO(Mlist::Vector{Array{T, 4}}) where T <: Number
     # vL vR pU pD 
     len = length(Mlist)
     phys_d = size(Mlist[1])[3]
@@ -48,7 +49,7 @@ end
 
 
 
-function IsingMPO(g::Float64, J::Float64 = 1.)::NTuple{3,Array{Float64, 4}}
+function IsingMPO(g::Float64, J::Float64 = 1.)
 
     sx = [0 1 ; 1  0]
     sz = [1 0 ; 0 -1]
@@ -64,7 +65,7 @@ function IsingMPO(g::Float64, J::Float64 = 1.)::NTuple{3,Array{Float64, 4}}
 end
 
 
-function build_Ising_MPO(LL::Int, g::Float64, J::Float64=1.)::myMPO
+function build_Ising_MPO(LL::Int, g::Float64, J::Float64=1.)
     Wl, Ws, Wr = IsingMPO(g, J)
     Wlist = fill(Ws, LL)
     Wlist[1] = Wl
@@ -76,8 +77,8 @@ end
 
 function expMinusEpsHIsingMPO(LL::Int,  g::Float64 = 0.9, J::Float64 = 1., eps::Float64 = 0.1) 
   
-    sx = [0 1 ; 1  0]
-    sz = [1 0 ; 0 -1]
+    sx =  [0 1 ; 1  0]
+    sz =  [1 0 ; 0 -1]
  
 
     Ut = reshape(exp(eps .*kron(sz,sz)),(2,2,2,2))
@@ -91,11 +92,17 @@ function expMinusEpsHIsingMPO(LL::Int,  g::Float64 = 0.9, J::Float64 = 1., eps::
     #ssu = u @ LA.sqrtm(np.diag(s));
     ssu = U * sqrt(Diagonal(S))
 
-    MPO = ncon([reshape(ssu,(2,2,2)),reshape(vss,(2,2,2))],[[-3,1,-2],[-1,1,-4]]) 
-    WW = ncon([exp(eps*g*0.5*sx), MPO, exp(eps*g*0.5*sx)],[[-3,1],[-1,-2,1,2],[2,-4]])
+    #temp = ncon([reshape(ssu,(2,2,2)),reshape(vss,(2,2,2))],[[-3,1,-2],[-1,1,-4]]) 
+    @tensor temp[i,j,k,l] := reshape(ssu,(2,2,2))[k,a,j]*reshape(vss,(2,2,2))[i,a,l]
+    #WW= ncon([exp(eps*g*0.5*sx), temp, exp(eps*g*0.5*sx)],[[-3,1],[-1,-2,1,2],[2,-4]])
+    @tensor WW[i,j,k,l] := exp(eps*g*0.5*sx)[k,a]*temp[i,j,a,b]*exp(eps*g*0.5*sx)[b,l]
+
+    println(size(WW))
+    #WWs = SArray{Tuple{2,2,2,2},Float64,4}(WW)
 
     # Fill the MPO matrices
     Wmpo = fill(WW,  LL)
+
     
     
     Wmpo[1] = reshape(WW[1,1:2,:,:],(1,2,2,2))
