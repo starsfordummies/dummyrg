@@ -1,6 +1,11 @@
+module myMPSstuff
+
 using TensorOperations
 using LinearAlgebra
 using Tullio
+
+export myMPS, init_MPS, truncate_svd, random_mps, bring_canonical!, bring_canonical_opt!
+export overlap, get_norm_zip, check_norm_SVs
 
 # Indices ordering: vL, vR, phys
 
@@ -17,7 +22,6 @@ struct myMPS{T <: Number}
 
 end
 
-
 function init_MPS(Mlist::Vector{Array{T, 3}}) where T <: Number 
     len = length(Mlist)
     phys_d = size(Mlist[1],3)
@@ -33,7 +37,23 @@ function init_MPS(Mlist::Vector{Array{T, 3}}) where T <: Number
     return myMPS(Mlist, len, phys_d, chis, SV, SVinv)
 end
 
+function random_mps(LL::Int, DD::Int = 2, T::DataType = ComplexF64) 
+    """ Returns a random myMPS object """
+    mlist = fill(rand(T,10,10,DD),LL)
+    mlist[1] = rand(T,1,10,DD) 
+    mlist[LL] = rand(T, 10,1,DD) 
 
+    return init_MPS(mlist) 
+end
+
+function product_state(LL::Int)
+    chi =1 
+    d = 2
+    plus = fill(1/sqrt(d),d)
+    outMPS = fill(reshape(plus,(chi,chi,d)),LL)
+
+    return outMPS
+end
 
 function truncate_svd(M, chiMax::Int=100, epsTrunc::Float64=1e-14) 
     F = svd!(M)
@@ -123,8 +143,6 @@ function bring_canonical!(inMPS::myMPS, chiMax::Int)
 end
 
 
-
-
 function bring_canonical_opt!(inMPS::myMPS{T}, chiMax::Int) where T <: Number
 
     LL = inMPS.LL
@@ -202,7 +220,6 @@ function bring_canonical_opt!(inMPS::myMPS{T}, chiMax::Int) where T <: Number
 end
 
 
-
 function overlap(bra::myMPS{T}, ket::myMPS{U}, conjugate::Bool = true) where {T <: Number, U <: Number}
     # < u | v > 
     if U <: Complex && conjugate 
@@ -239,7 +256,6 @@ function get_norm_zip(inMPS::myMPS)
 end
 
 
-
 function check_norm_SVs(inMPS::myMPS, epsTol::Float64 = 1e-14)::Bool
     sumsqs = fill(false,inMPS.LL+1)
     for (jj, lambdas) in enumerate(inMPS.SV)
@@ -262,24 +278,4 @@ function get_entropies(inMPS::myMPS)
 end
         
 
-
-function random_mps(LL::Int, DD::Int = 2, T::DataType = ComplexF64) 
-    """ Returns a random myMPS object """
-    mlist = fill(rand(T,10,10,DD),LL)
-    mlist[1] = rand(T,1,10,DD) 
-    mlist[LL] = rand(T, 10,1,DD) 
-
-    return init_MPS(mlist) 
-end
-
-
-
-function product_state(LL::Int)
-    chi =1 
-    d = 2
-    plus = fill(1/sqrt(d),d)
-    outMPS = fill(reshape(plus,(chi,chi,d)),LL)
-
-    return outMPS
-end
-
+end # module myMPSstuff

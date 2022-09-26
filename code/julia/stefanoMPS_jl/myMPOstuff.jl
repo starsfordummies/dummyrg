@@ -1,11 +1,17 @@
+module myMPOstuff
+
 using TensorOperations
 using LinearAlgebra
 #using StaticArrays
-include("myMPSstuff.jl")
+
+using ..myMPSstuff: truncate_svd
 
 # Indices ordering: vL, vR, phU, phD
 
 #Base.@kwdef 
+
+export myMPO, myMPOcompact,
+       build_Ising_MPO_compact
 
 struct MPOCompactVector{T <: Number} <: AbstractVector{Array{T,4}}
     Wl :: Array{T,4}
@@ -19,6 +25,7 @@ Base.size(v::MPOCompactVector) = (v.len,)
 Base.IndexStyle(::Type{<:MPOCompactVector}) = IndexLinear()
 
 function Base.getindex(v::MPOCompactVector, i::Int) 
+    @assert i >= 0 && i <= v.len
     if i == 1 
         return v.Wl
     elseif i == v.len
@@ -38,6 +45,8 @@ Base.size(v::chisCompactVector) = (v.len,)
 Base.IndexStyle(::Type{<:chisCompactVector}) = IndexLinear()
 
 function Base.getindex(v::chisCompactVector, i::Int) 
+    @assert i >= 0 && i <= v.len
+
     if i == 1 || i == v.len
         return 1
     else
@@ -215,3 +224,5 @@ function expMinusEpsHIsingMPO_compact(LL::Int,  g::Float64 = 0.9, J::Float64 = 1
 
     return init_MPOcompact(LL, (reshape(WW[1,1:2,:,:],(1,2,2,2)),WW,reshape(WW[1:2,1,:,:],(2,1,2,2))))
 end
+
+end #module myMPOstuff

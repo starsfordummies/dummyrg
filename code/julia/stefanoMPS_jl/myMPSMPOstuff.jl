@@ -1,4 +1,7 @@
-
+using .myMPSstuff: myMPS, bring_canonical_opt!, random_mps
+using .myMPOstuff: myMPO, myMPOcompact, build_Ising_MPO_compact
+using TensorOperations
+using Tullio
 
 function apply_MPO!(inMPS::myMPS, inMPO::Union{myMPO,myMPOcompact})
 
@@ -15,12 +18,33 @@ function apply_MPO!(inMPS::myMPS, inMPO::Union{myMPO,myMPOcompact})
         inMPS.chis[jj] = XL
 
     end
- 
 
 end
 
+""" Applies MPO to psi, using speedup tricks """
+function apply_MPO_threaded!(inMPS::myMPS, inMPO::Union{myMPO,myMPOcompact})
+
+    DD = inMPS.DD
+    Xas = inMPS.chis
+    Xws = inMPO.chis
+
+    Base.Threads.@threads for jj in eachindex(inMPS.MPS, inMPO.MPO)
+        #@show size(Aj) size(Wj)
+        @tullio WAj[vLa,vLw,vRa,vRw,phU] := inMPS.MPS[jj][vLa,vRa,d]*inMPO.MPO[jj][vLw,vRw,phU,d] 
+        XL = Xas[jj]*Xws[jj]
+        XR = Xas[jj+1]*Xws[jj+1]
+        inMPS.MPS[jj] = reshape(WAj,(XL, XR, DD))
+        #inMPS.chis[jj] = XL
+
+    end
+    for (jj, Mj) in enumerate(inMPS.MPS)
+        inMPS.chis[jj] = size(Mj,1)
+    end
 
 
+end
+
+""" Expectation value <psi|O|psi>  """
 function expval_MPO(psi::myMPS, O::Union{myMPO,myMPOcompact})
     psibra = deepcopy(psi)
     psiket = deepcopy(psi)
@@ -30,15 +54,14 @@ function expval_MPO(psi::myMPS, O::Union{myMPO,myMPOcompact})
     
 end
 
-
-
+""" Power method - returns psi  """
 function power_method(U::myMPO, nIters::Int=10, chiMax::Int=50)
     println("No starting MPS given, starting from a random one")
     psi = random_mps(U.LL, U.DD)
     power_method(U, psi, nIters, chiMax)
 end
 
-""" Above the func """
+""" Power method - returns psi  """
 function power_method(U::myMPO, psi::myMPS, nIters::Int=10, chiMax::Int=50)
     """Returns psi """
 
@@ -55,4 +78,15 @@ function power_method(U::myMPO, psi::myMPS, nIters::Int=10, chiMax::Int=50)
     end
     @show deltaE 
     return psi
+end
+
+""" Test func for benchmarking"""
+function test_applyMPO(h::Union{myMPO,myMPOcompact})
+    psi = random_mps(10)
+    apply_MPO!(psi,h)
+end
+
+function test_applyMPOthr(h::Union{myMPO,myMPOcompact})
+    psi = random_mps(10)
+    apply_MPO_threaded!(psi,h)
 end
