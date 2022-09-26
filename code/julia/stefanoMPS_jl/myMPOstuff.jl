@@ -1,19 +1,59 @@
 using TensorOperations
 using LinearAlgebra
-using StaticArrays
+#using StaticArrays
 include("myMPSstuff.jl")
 
 # Indices ordering: vL, vR, phU, phD
 
 #Base.@kwdef 
+
+struct MPOCompactVector{T <: Number} <: AbstractVector{Array{T,4}}
+    Wl :: Array{T,4}
+    Ws :: Array{T,4}
+    Wr :: Array{T,4}
+    len :: Int 
+end
+
+Base.size(v::MPOCompactVector) = (v.len,)
+function Base.getindex(v::MPOCompactVector, i::Int) 
+    if i == 1 
+        return v.Wl
+    elseif i == v.len
+        return v.Wr
+    else
+        return v.Ws
+    end
+end
+
+
+struct chisCompactVector <: AbstractVector{Int}
+    chi_s :: Int
+    len :: Int 
+end
+
+Base.size(v::chisCompactVector) = (v.len,)
+function Base.getindex(v::chisCompactVector, i::Int) 
+    if i == 1 || i == v.len
+        return 1
+    else
+        return v.chi_s
+    end
+end
+
+
 struct myMPO{T <: Number}
     MPO::Vector{Array{T,4}}
     LL::Int
     DD::Int
     chis::Vector{Int}
-
 end
 
+struct myMPOcompact{T <: Number}
+    MPO::MPOCompactVector{T}
+    LL::Int
+    DD::Int
+    chis::chisCompactVector
+end
 
 
 function random_mpo(LL::Int, DD::Int = 2) 
@@ -40,14 +80,33 @@ function init_MPO(Mlist::Vector{Array{T, 4}}) where T <: Number
     # vL vR pU pD 
     len = length(Mlist)
     phys_d = size(Mlist[1])[3]
-    chis = [size(mj)[1] for mj in Mlist]
+    chis = [size(mj,1) for mj in Mlist]
 
-    push!(chis, size(last(Mlist))[2])
+    push!(chis, size(last(Mlist),2))
 
     return myMPO(Mlist, len, phys_d, chis)
 end
 
 
+
+function init_MPOcompact(Mlist::Vector{Array{T, 4}}) where T <: Number
+    # vL vR pU pD 
+    len = length(Mlist)
+    phys_d = size(Mlist[1],3)
+    chis_compact = chisCompactVector(size(mj,2),len+1 )
+    Mlist_compact = MPOCompactVector(Mlist[1],Mlist[2],Mlist[end],len)
+
+    return myMPOcompact(Mlist_compact, len, phys_d, chis_compact)
+end
+
+function init_MPOcompact(len, ww::Tuple{Array{T, 4},Array{T, 4},Array{T, 4}}) where T <: Number
+   
+    phys_d = size(ww[2],3)
+    chis_compact = chisCompactVector(size(ww[1],2),len+1 )
+    Mlist_compact = MPOCompactVector(ww[1], ww[2], ww[3], len)
+
+    return myMPOcompact(Mlist_compact, len, phys_d, chis_compact)
+end
 
 function IsingMPO(g::Float64, J::Float64 = 1.)
 
