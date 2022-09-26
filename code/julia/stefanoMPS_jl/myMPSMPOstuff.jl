@@ -1,6 +1,6 @@
 
 
-function apply_MPO!(inMPS::myMPS, inMPO::myMPO)
+function apply_MPO!(inMPS::myMPS, inMPO::Union{myMPO,myMPOcompact})
 
     DD = inMPS.DD
     Xas = inMPS.chis
@@ -21,7 +21,7 @@ end
 
 
 
-function expval_MPO(psi::myMPS, O::myMPO)
+function expval_MPO(psi::myMPS, O::Union{myMPO,myMPOcompact})
     psibra = deepcopy(psi)
     psiket = deepcopy(psi)
     #println("Check norm: ", overlap(psibra,psiket))
@@ -38,8 +38,9 @@ function power_method(U::myMPO, nIters::Int=10, chiMax::Int=50)
     power_method(U, psi, nIters, chiMax)
 end
 
+""" Above the func """
 function power_method(U::myMPO, psi::myMPS, nIters::Int=10, chiMax::Int=50)
-    #psi = random_MPS(U.LL, U.DD)
+    """Returns psi """
 
     enPrev = 1e10
     deltaE = 0.

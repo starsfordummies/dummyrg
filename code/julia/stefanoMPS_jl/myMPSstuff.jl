@@ -214,7 +214,7 @@ function overlap(bra::myMPS{T}, ket::myMPS{U}, conjugate::Bool = true) where {T 
     ketV = ket.MPS
 
     if T <: Complex || U <: Complex 
-        blob = reshape(ons(ComplexF64),(1,1))
+        blob = reshape(ones(ComplexF64),(1,1))
     else
         blob = reshape(ones(Float64),(1,1))
     end

@@ -15,6 +15,9 @@ struct MPOCompactVector{T <: Number} <: AbstractVector{Array{T,4}}
 end
 
 Base.size(v::MPOCompactVector) = (v.len,)
+
+Base.IndexStyle(::Type{<:MPOCompactVector}) = IndexLinear()
+
 function Base.getindex(v::MPOCompactVector, i::Int) 
     if i == 1 
         return v.Wl
@@ -32,6 +35,8 @@ struct chisCompactVector <: AbstractVector{Int}
 end
 
 Base.size(v::chisCompactVector) = (v.len,)
+Base.IndexStyle(::Type{<:chisCompactVector}) = IndexLinear()
+
 function Base.getindex(v::chisCompactVector, i::Int) 
     if i == 1 || i == v.len
         return 1
@@ -119,7 +124,6 @@ function IsingMPO(g::Float64, J::Float64 = 1.)
     Ws =  permutedims([id  ;;; zero  ;;; zero ;;;; sz ;;; zero ;;; zero ;;;; g*sx ;;; J*sz ;;; id ],(4,3,1,2))
     Wr = reshape(permutedims([id ;;; sz ;;; g*sx],(3,1,2)),(3,1,2,2))
 
-
     return Wl, Ws, Wr 
 end
 
@@ -131,6 +135,21 @@ function build_Ising_MPO(LL::Int, g::Float64, J::Float64=1.)
     Wlist[LL] = Wr
     #@show size(Wl) size(Ws) size(Wr)
     return init_MPO(Wlist)
+end
+
+
+function build_Ising_MPO(LL::Int, g::Float64, J::Float64=1.)
+    Wl, Ws, Wr = IsingMPO(g, J)
+    Wlist = fill(Ws, LL)
+    Wlist[1] = Wl
+    Wlist[LL] = Wr
+    #@show size(Wl) size(Ws) size(Wr)
+    return init_MPO(Wlist)
+end
+
+function build_Ising_MPO_compact(LL::Int, g::Float64, J::Float64=1.)
+
+    return init_MPOcompact(LL, IsingMPO(g, J))
 end
 
 
@@ -161,11 +180,38 @@ function expMinusEpsHIsingMPO(LL::Int,  g::Float64 = 0.9, J::Float64 = 1., eps::
 
     # Fill the MPO matrices
     Wmpo = fill(WW,  LL)
-
-    
     
     Wmpo[1] = reshape(WW[1,1:2,:,:],(1,2,2,2))
     Wmpo[LL] = reshape(WW[1:2,1,:,:],(2,1,2,2))
 
     return init_MPO(Wmpo)
+end
+
+function expMinusEpsHIsingMPO_compact(LL::Int,  g::Float64 = 0.9, J::Float64 = 1., eps::Float64 = 0.1) 
+  
+    sx =  [0 1 ; 1  0]
+    sz =  [1 0 ; 0 -1]
+ 
+    Ut = reshape(exp(eps .*kron(sz,sz)),(2,2,2,2))
+    
+    U, S, Vt, chiT = truncate_svd(reshape(permutedims(Ut,(1,3,2,4)),(4,4)) )
+   
+    vss = sqrt(Diagonal(S)) * Vt
+    ssu = U * sqrt(Diagonal(S))
+
+    #temp = ncon([reshape(ssu,(2,2,2)),reshape(vss,(2,2,2))],[[-3,1,-2],[-1,1,-4]]) 
+    @tensor temp[i,j,k,l] := reshape(ssu,(2,2,2))[k,a,j]*reshape(vss,(2,2,2))[i,a,l]
+    #WW= ncon([exp(eps*g*0.5*sx), temp, exp(eps*g*0.5*sx)],[[-3,1],[-1,-2,1,2],[2,-4]])
+    @tensor WW[i,j,k,l] := exp(eps*g*0.5*sx)[k,a]*temp[i,j,a,b]*exp(eps*g*0.5*sx)[b,l]
+
+    println(size(WW))
+    #WWs = SArray{Tuple{2,2,2,2},Float64,4}(WW)
+
+    # Fill the MPO matrices
+    Wmpo = fill(WW,  LL)
+    
+    Wmpo[1] = reshape(WW[1,1:2,:,:],(1,2,2,2))
+    Wmpo[LL] = reshape(WW[1:2,1,:,:],(2,1,2,2))
+
+    return init_MPOcompact(LL, (reshape(WW[1,1:2,:,:],(1,2,2,2)),WW,reshape(WW[1:2,1,:,:],(2,1,2,2))))
 end
