@@ -67,6 +67,7 @@ def buildRotFoldMPO(Tmax: float, dt: float, gz: float = 0.2, rules: dict = {"mmo
         WWfold = ncon([WW,np.conj(WW)],[[-1,-3,-5,-7],[-2,-4,-6,-8]]).reshape(4,4,4,4)
 
         plus = np.kron([1/np.sqrt(2),1/np.sqrt(2)],[1/np.sqrt(2),1/np.sqrt(2)]);
+        #altplus = np.kron([1,0],[1,0])  (= (1,0,0,0) )
         one =  np.asarray([1.,0,0,1]);  
 
         Wbottom = ncon((plus, WWfold), ([1],[-1,-2,-3,1])).reshape(4,4,4,1)

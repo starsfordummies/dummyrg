@@ -55,21 +55,25 @@ function expval_MPO(psi::myMPS, O::Union{myMPO,myMPOcompact})
 end
 
 """ Power method - returns psi  """
-function power_method(U::myMPO, nIters::Int=10, chiMax::Int=50)
+function power_method(U::myMPO, nIters::Int=10, chiMax::Int=50, faster::Bool=false)
     println("No starting MPS given, starting from a random one")
     psi = random_mps(U.LL, U.DD)
-    power_method(U, psi, nIters, chiMax)
+    power_method(U, psi, nIters, chiMax, faster)
 end
 
 """ Power method - returns psi  """
-function power_method(U::myMPO, psi::myMPS, nIters::Int=10, chiMax::Int=50)
+function power_method(U::myMPO, psi::myMPS, nIters::Int=10, chiMax::Int=50, faster::Bool=false)
     """Returns psi """
 
     enPrev = 1e10
     deltaE = 0.
     for jj in 1:nIters
         #println("apply ", jj)
-        apply_MPO!(psi, U)
+        if faster
+            apply_MPO!(psi, U)
+        else
+            apply_MPO_threaded!(psi, U)
+        end
         bring_canonical!(psi,chiMax)
         en = expval_MPO(psi, U)
         deltaE = en-enPrev
@@ -79,6 +83,7 @@ function power_method(U::myMPO, psi::myMPS, nIters::Int=10, chiMax::Int=50)
     @show deltaE 
     return psi
 end
+
 
 """ Test func for benchmarking"""
 function test_applyMPO(h::Union{myMPO,myMPOcompact})
