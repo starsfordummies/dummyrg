@@ -1,4 +1,4 @@
-using .myMPSstuff: myMPS, bring_canonical_opt!, random_mps
+using .myMPSstuff: myMPS, bring_canonical!, bring_canonical_opt!, random_mps, overlap, svd_sweep!
 using .myMPOstuff: myMPO, myMPOcompact, build_Ising_MPO_compact
 using TensorOperations
 using Tullio
@@ -56,25 +56,32 @@ end
 
 """ Power method - returns psi  """
 function power_method(U::myMPO, nIters::Int=10, chiMax::Int=50, faster::Bool=false)
-    println("No starting MPS given, starting from a random one")
+    println("No starting MPS given, starting from a random one with L = $(U.LL) , D=$(U.DD)")
     psi = random_mps(U.LL, U.DD)
+    bring_canonical_opt!(psi,20)
+
     power_method(U, psi, nIters, chiMax, faster)
 end
 
 """ Power method - returns psi  """
 function power_method(U::myMPO, psi::myMPS, nIters::Int=10, chiMax::Int=50, faster::Bool=false)
-    """Returns psi """
+
+    if faster 
+        println("faster tricks")
+        println("Using $(Base.Threads.nthreads()) threads")
+    end
 
     enPrev = 1e10
     deltaE = 0.
     for jj in 1:nIters
         #println("apply ", jj)
         if faster
-            apply_MPO!(psi, U)
-        else
             apply_MPO_threaded!(psi, U)
+            svd_sweep!(psi,chiMax)
+        else
+            apply_MPO!(psi, U)
+            bring_canonical!(psi,chiMax)
         end
-        bring_canonical!(psi,chiMax)
         en = expval_MPO(psi, U)
         deltaE = en-enPrev
         #println("deltaE[", jj, "] = ",  en - enPrev)

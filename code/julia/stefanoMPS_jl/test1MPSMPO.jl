@@ -2,29 +2,29 @@ include("myMPSstuff.jl")
 include("myMPOstuff.jl")
 include("myMPSMPOstuff.jl")
 
+using ..myMPSstuff: get_entropies, bring_canonical!
+using ..myMPOstuff: expMinusEpsHIsingMPO_compact, expMinusEpsHIsingMPO
+#using ..myMPsMPOstuff: power_method, expval_MPO
+
 function main()
-    L = 20
+    L = 100
     gg = 0.9
-    mps1 = random_MPS(L)
-    println(get_norm_zip(mps1))
-    bring_canonical!(mps1, 50)
-    println(get_norm_zip(mps1))
 
-    Hi=build_Ising_MPO(L, gg)
+    #Htr = expMinusEpsHIsingMPO_compact(L, gg)
     Htr = expMinusEpsHIsingMPO(L, gg)
+    
+    psiGS = power_method(Htr, 2, 50, false)
+    psiGS = power_method(Htr, 2, 50, true)
 
 
-    psiGS = power_method(Hi, 600, 50)
+    @time  psiGS = power_method(Htr, 600, 200)
+    println(get_entropies(psiGS))
+    #println(expval_MPO(psiGS, Hi))
+    
+    @time  psiGS = power_method(Htr, 600, 200, true)
 
     println(get_entropies(psiGS))
-
-    println(expval_MPO(psiGS, Hi))
-
-
-    psiGS = power_method(Htr, 600, 50)
-    println(get_entropies(psiGS))
-
-    println(expval_MPO(psiGS, Hi))
+    #println(expval_MPO(psiGS, Hi))
 
 end
 

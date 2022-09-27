@@ -5,7 +5,7 @@ using LinearAlgebra
 using Tullio
 
 export myMPS, init_MPS, truncate_svd, random_mps, bring_canonical!, bring_canonical_opt!
-export overlap, get_norm_zip, check_norm_SVs
+export overlap, get_norm_zip, check_norm_SVs, svd_sweep!
 
 # Indices ordering: vL, vR, phys
 
@@ -68,6 +68,42 @@ function truncate_svd_svonly(M, chiMax::Int=100, epsTrunc::Float64=1e-14)
     filter!(sv -> sv>epsTrunc, SVs)
     cut = min(size(SVs,1),chiMax)
     return view(SVs,1:cut), cut
+end
+
+
+""" Perform only a L->R sweep truncating at chiMax """
+function svd_sweep!(inMPS::myMPS{T}, chiMax::Int) where T <: Number
+
+    LL = inMPS.LL
+    DD = inMPS.DD
+
+    #mps = permutedims.(inMPS.MPS,[(1,3,2)]) 
+    
+    for (jj, Aj) in enumerate(inMPS.MPS)
+        Aj = permutedims(Aj, (1,3,2))
+  
+        chiL, chiR = size(Aj,1), size(Aj,3)
+
+        F = svd!(reshape(Aj,chiL*DD,chiR))
+        chiT = length(F.S)
+        inMPS.chis[jj+1] = chiT
+   
+        mps[jj] = reshape(Matrix(F.U),(chiL,DD,chiT))
+        #println("Setting A$(jj)")
+
+        if jj < LL
+            inMPS.SV[jj+1] = F.S
+            #println("setting SV$(jj+1)")
+            @tensor next[vL,ph,vR] := Diagonal(F.S)[vL,a]*F.Vt[a,b]*mps[jj+1][b,ph,vR]
+            mps[jj+1] = next
+        end
+    end
+
+    # Put back the canonical form with re-swapped indices (L form)
+    for jj in eachindex(inMPS.MPS) 
+        inMPS.MPS[jj] = permutedims(inMPS.MPS[jj],[1,3,2])
+    end
+    inMPS.SVinv .= [inv.(s) for s in inMPS.SV]
 end
 
 
@@ -138,8 +174,11 @@ function bring_canonical!(inMPS::myMPS, chiMax::Int)
 
 
     # Put back the canonical form with re-swapped indices (L form)
-    #inMPS.MPS = [permutedims(m,(1,3,2)) for m in work]
-    #inMPS.SVinv = [s.^(-1) for s in inMPS.SV]
+    for jj in eachindex(work) 
+        inMPS.MPS[jj] = permutedims(work[jj],(1,3,2))
+        inMPS.SVinv[jj] = inMPS.SV[jj].^(-1) 
+    end
+
 end
 
 
