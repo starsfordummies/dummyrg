@@ -7,7 +7,7 @@ sx = np.asarray([[0., 1], [1, 0.]])
 sz = np.asarray([[1, 0.], [0., -1]])
 
 
-def buildRotFoldMPO(Tmax: float, dt: float, gz: float = 0.2, rules: dict = {"mmode": "svd", "ttype": "real", "fold": False}):
+def buildRotFoldMPO(Tmax: float, dt: float, gz: float = 0.2, rules: dict = {"mmode": "svd", "ttype": "real", "fold": False}, LR='R'):
 
     mode = rules["mmode"] 
     time_type = rules["ttype"]
@@ -113,9 +113,16 @@ def buildRotFoldMPO(Tmax: float, dt: float, gz: float = 0.2, rules: dict = {"mmo
             #print(np.shape(wMPO[jj]))
 
 
+    """    2           0
+         0   1   ->  3   2
+           3           1
+         """
 
     # At the end, rotate
-    rMPO = [ w.transpose(3,2,0,1) for w in wMPO ]
+    if LR == 'R':  # default, for getting right leading vec
+        rMPO = [ w.transpose(3,2,0,1) for w in wMPO ]
+    elif LR == 'L':
+        rMPO = [ w.transpose(3,2,1,0) for w in wMPO ]
 
 
 
