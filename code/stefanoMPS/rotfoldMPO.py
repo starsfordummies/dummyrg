@@ -59,8 +59,6 @@ def buildRotFoldMPO(Tmax: float, dt: float, gz: float = 0.2, rules: dict = {"mmo
 
 
 
-
-
     if fold:
         print(f"**Folded MPO ")
 
