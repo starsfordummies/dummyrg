@@ -2,9 +2,11 @@ include("myMPSstuff.jl")
 include("myMPOstuff.jl")
 include("myMPSMPOstuff.jl")
 
-using ..myMPSstuff: get_entropies, bring_canonical!
+using ..myMPSstuff: get_entropies, bring_canonical!, get_norm_zip
 using ..myMPOstuff: expMinusEpsHIsingMPO_compact, expMinusEpsHIsingMPO
 #using ..myMPsMPOstuff: power_method, expval_MPO
+
+using BenchmarkTools
 
 function main()
     L = 100
@@ -17,13 +19,16 @@ function main()
     psiGS = power_method(Htr, 2, 50, true)
 
 
-    @time  psiGS = power_method(Htr, 600, 200)
+    psiGS = power_method(Htr, 50, 100)
     println(get_entropies(psiGS))
+    @btime  psiGS = power_method($Htr, 50, 100)
     #println(expval_MPO(psiGS, Hi))
     
-    @time  psiGS = power_method(Htr, 600, 200, true)
-
+    psiGS = power_method(Htr, 50, 100, true)
     println(get_entropies(psiGS))
+    @btime power_method($Htr, 50, 100, true)
+
+    #println(get_entropies(psiGS))
     #println(expval_MPO(psiGS, Hi))
 
 end
