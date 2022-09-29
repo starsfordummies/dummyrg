@@ -46,6 +46,43 @@ def IsingMPO(LL: int, J: float = 1., g: float = 0.4) -> list[np.array]:
     return Wmpo
 
 
+def IsingMPO_swapLR(LL: int, J: float = 1., g: float = 0.4) -> list[np.array]:
+
+    """ Ising Hamiltonian in MPO form """
+
+    Wmpo = [id]*LL
+    
+    # I put a minus in front of this to get the correct Ising Ham with an overall minus,
+    # alternatively one could just define the couplings as negative I guess
+    #         |
+    #         v
+    
+    Wmpo[0] = - np.array([[g*sx, J*sz, id]])
+
+    for j in range(1,LL-1):
+        Wmpo[j] = np.array([[id,  zero,   zero],
+                            [sz,  zero,   zero], 
+                            [g*sx, J*sz,   id ]])
+                            
+    Wmpo[LL-1] = np.array([[id],[sz],[g*sx]]) 
+
+
+   # nel mio MPO parto dalla dx e vado verso sx, vs. Luca che va da sx a dx 
+   #
+   # |0><0| x 1 + 10 x Z -h 20 x X + h 
+
+
+    logging.info(f"Ising MPO, parameters: J={J} g={g},  shapes:")
+    logging.info([np.shape(w) for w in Wmpo])
+
+    print(Wmpo[0])
+
+    for i,wi in enumerate(Wmpo):
+        Wmpo[i] = wi.transpose(0,1,3,2)
+    
+    return Wmpo
+
+
 
 
 
