@@ -1,17 +1,8 @@
-module myMPOstuff
 
 using TensorOperations
 using LinearAlgebra
 #using StaticArrays
 
-using ..myMPSstuff: truncate_svd
-
-# Indices ordering: vL, vR, phU, phD
-
-#Base.@kwdef 
-
-export myMPO, myMPOcompact,
-       build_Ising_MPO_compact
 
 struct MPOCompactVector{T <: Number} <: AbstractVector{Array{T,4}}
     Wl :: Array{T,4}
@@ -137,15 +128,6 @@ function IsingMPO(g::Float64, J::Float64 = 1.)
 end
 
 
-function build_Ising_MPO(LL::Int, g::Float64, J::Float64=1.)
-    Wl, Ws, Wr = IsingMPO(g, J)
-    Wlist = fill(Ws, LL)
-    Wlist[1] = Wl
-    Wlist[LL] = Wr
-    #@show size(Wl) size(Ws) size(Wr)
-    return init_MPO(Wlist)
-end
-
 
 function build_Ising_MPO(LL::Int, g::Float64, J::Float64=1.)
     Wl, Ws, Wr = IsingMPO(g, J)
@@ -224,5 +206,3 @@ function expMinusEpsHIsingMPO_compact(LL::Int,  g::Float64 = 0.9, J::Float64 = 1
 
     return init_MPOcompact(LL, (reshape(WW[1,1:2,:,:],(1,2,2,2)),WW,reshape(WW[1:2,1,:,:],(2,1,2,2))))
 end
-
-end #module myMPOstuff

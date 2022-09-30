@@ -1,5 +1,3 @@
-using .myMPSstuff: myMPS, bring_canonical!, bring_canonical_opt!, random_mps, overlap, svd_sweep!
-using .myMPOstuff: myMPO, myMPOcompact, build_Ising_MPO_compact
 using TensorOperations
 using Tullio
 

@@ -1,24 +1,32 @@
-module myMPSstuff
+
 
 using TensorOperations
 using LinearAlgebra
 using Tullio
 
-export myMPS, init_MPS, truncate_svd, random_mps, bring_canonical!, bring_canonical_opt!
-export overlap, get_norm_zip, check_norm_SVs, svd_sweep!
-
 # Indices ordering: vL, vR, phys
 
 struct myMPS{T <: Number}
     MPS::Vector{Array{T,3}}
-    # MPS::Array{Array{T,3} }
     LL::Int
     DD::Int
     chis::Vector{Int}
 
     SV::Vector{Vector{Float64}}
     SVinv::Vector{Vector{Float64}}
-    #curr_form::Char 
+
+    function myMPS{T}(Mlist::Vector{Array{T, 3}}) where T <: Number
+        len = length(Mlist)
+        phys_d = size(Mlist[1],3)
+
+        chis = [size(mj,1) for mj in Mlist]
+        push!(chis, size(last(Mlist),2))
+    
+        SV = [ones(Float64, 1) for j in 1:len+1]
+        SVinv = [ones(Float64, 1) for j in 1:len+1]
+    
+        new(Mlist, len, phys_d, chis, SV, SVinv)
+    end
 
 end
 
@@ -29,8 +37,8 @@ function init_MPS(Mlist::Vector{Array{T, 3}}) where T <: Number
 
     push!(chis, size(last(Mlist),2))
 
-    SV = [ones(1) for j in 1:len+1]
-    SVinv = [ones(1) for j in 1:len+1]
+    SV = [ones(Float64, 1) for j in 1:len+1]
+    SVinv = [ones(Float64, 1) for j in 1:len+1]
 
     #curr_form = 'x'
 
@@ -43,7 +51,8 @@ function random_mps(LL::Int, DD::Int = 2, T::DataType = ComplexF64)
     mlist[1] = rand(T,1,10,DD) 
     mlist[LL] = rand(T, 10,1,DD) 
 
-    return init_MPS(mlist) 
+    #return init_MPS(mlist) 
+    return myMPS{T}(mlist)
 end
 
 function product_state(LL::Int)
@@ -291,7 +300,7 @@ end
 
 function get_norm_zip(inMPS::myMPS)
     normsq = overlap(inMPS, inMPS, true)
-    @assert imag(normsq)/real(normsq) < 1e-15 "complex norm?! $normsq"
+    @assert imag(normsq)/real(normsq) < 1e-14 "complex norm?! $normsq"
 
     return sqrt(real(normsq))
 end
@@ -318,5 +327,3 @@ function get_entropies(inMPS::myMPS)
     return ents
 end
         
-
-end # module myMPSstuff
