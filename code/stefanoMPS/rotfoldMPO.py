@@ -9,7 +9,7 @@ sz = np.asarray([[1, 0.], [0., -1]])
 
 def buildRotFoldMPO(Tmax: float, dt: float, gz: float = 0.2, rules: dict = {"mmode": "svd", "ttype": "real", "fold": False}, LR='R'):
     op = np.asarray([1.,0,0,1])
-    return buildRotFoldMPO_op(op, Tmax, dt, gz, rules, LR='R'):
+    return buildRotFoldMPO_op(op, Tmax, dt, gz, rules, LR)
 
 
 def buildRotFoldMPO_op(op: np.ndarray, Tmax: float, dt: float, gz: float = 0.2, rules: dict = {"mmode": "svd", "ttype": "real", "fold": False}, LR='R'):

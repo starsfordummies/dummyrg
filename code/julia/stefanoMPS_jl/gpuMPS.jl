@@ -16,7 +16,7 @@ struct myMPS
     #curr_form::Char 
 
 end
-#CUDA.Mem.DeviceBuffer
+
 function init_MPS(Mlist::Vector{CuArray{Float32, 3, CUDA.Mem.DeviceBuffer}}) 
     len = length(Mlist)
     phys_d = size(Mlist[1],3)
@@ -55,15 +55,12 @@ end
 function bring_canonical_opt!(inMPS::myMPS, chiMax::Int) 
 
     LL = inMPS.LL
-    #mps = inMPS.MPS
     mps = permutedims.(inMPS.MPS,[(1,3,2)]) 
   
     println("Starting from $(inMPS.chis)")
     println("typeof: $(typeof(mps))")
 
     DD = inMPS.DD
-    #mid = ceil(Int, LL/2)
-    #qrA = qr!(reshape(mps[mid],(inMPS.chis[mid]*DD,inMPS.chis[mid+1])))
 
     for (jj, Aj) in enumerate(mps)
         chiL, chiR = size(Aj,1), size(Aj,3)
