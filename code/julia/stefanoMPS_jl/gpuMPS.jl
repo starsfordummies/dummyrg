@@ -58,6 +58,8 @@ function bring_canonical_opt!(inMPS::myMPS, chiMax::Int)
     #mps = inMPS.MPS
     mps = permutedims.(inMPS.MPS,[(1,3,2)]) 
   
+    println("Starting from $(inMPS.chis)")
+    println("typeof: $(typeof(mps))")
 
     DD = inMPS.DD
     #mid = ceil(Int, LL/2)
@@ -65,7 +67,7 @@ function bring_canonical_opt!(inMPS::myMPS, chiMax::Int)
 
     for (jj, Aj) in enumerate(mps)
         chiL, chiR = size(Aj,1), size(Aj,3)
-        qrA = CUDA.qr!(reshape(Aj,(chiL*DD,chiR)))
+        qrA = CUDA.qr(reshape(Aj,(chiL*DD,chiR)))
         chiT = size(qrA.R,1)
 
         # Update the A[j] and chi[j+1] elements
@@ -74,7 +76,7 @@ function bring_canonical_opt!(inMPS::myMPS, chiMax::Int)
 
         if jj < LL # don't build next matrix for last element
             An = mps[jj+1]
-            @tullio fastmath=false next[vL,ph,vR] := qrA.R[vL,a]*An[a,ph,vR]
+            @tullio  next[vL,ph,vR] := qrA.R[vL,a]*An[a,ph,vR]
             mps[jj+1] = next
         end
     end
@@ -82,7 +84,7 @@ function bring_canonical_opt!(inMPS::myMPS, chiMax::Int)
     # Now to one R sweep with truncation
 
     for jj in reverse(eachindex(mps))
-        print(jj)
+        #print(jj)
         Aj = mps[jj]
         chiL, chiR = size(Aj,1), size(Aj,3)
 
@@ -94,12 +96,16 @@ function bring_canonical_opt!(inMPS::myMPS, chiMax::Int)
 
         if jj > 1
             Ap = mps[jj-1]
-           @cutensor next[vL,ph,vR] := Ap[vL,ph,a]*U[a,b]*Diagonal(S)[b,vR]
+           @tensor next[vL,ph,vR] := Ap[vL,ph,a]*U[a,b]*CuArray(Diagonal(S))[b,vR]
+           println("typeof next: $(typeof(next))")
            mps[jj-1] = next
      
         end
 
     end
+    
+    println("After first truncated SVD, chis: $(inMPS.chis)")
+    println("typeof tensors: $(typeof(mps)) , $(typeof(mps[4])) ")
 
     # And one final L sweep 
 
@@ -117,7 +123,7 @@ function bring_canonical_opt!(inMPS::myMPS, chiMax::Int)
             inMPS.SV[jj+1] = F.S
             #println("setting SV$(jj+1)")
             An = mps[jj+1]
-            @tullio next[vL,ph,vR] := Diagonal(F.S)[vL,a]*F.Vt[a,b]*An[b,ph,vR]
+            @tullio next[vL,ph,vR] := CuArray(Diagonal(F.S))[vL,a]*F.Vt[a,b]*An[b,ph,vR]
             mps[jj+1] = next
         else
 

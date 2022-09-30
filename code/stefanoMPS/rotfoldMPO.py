@@ -8,6 +8,11 @@ sz = np.asarray([[1, 0.], [0., -1]])
 
 
 def buildRotFoldMPO(Tmax: float, dt: float, gz: float = 0.2, rules: dict = {"mmode": "svd", "ttype": "real", "fold": False}, LR='R'):
+    op = np.asarray([1.,0,0,1])
+    return buildRotFoldMPO_op(op, Tmax, dt, gz, rules, LR='R'):
+
+
+def buildRotFoldMPO_op(op: np.ndarray, Tmax: float, dt: float, gz: float = 0.2, rules: dict = {"mmode": "svd", "ttype": "real", "fold": False}, LR='R'):
 
     mode = rules["mmode"] 
     time_type = rules["ttype"]
@@ -60,16 +65,16 @@ def buildRotFoldMPO(Tmax: float, dt: float, gz: float = 0.2, rules: dict = {"mmo
 
 
     if fold:
-        print(f"**Folded MPO ")
+        print(f"**Folded MPO with operator {op} ")
 
         WWfold = ncon([WW,np.conj(WW)],[[-1,-3,-5,-7],[-2,-4,-6,-8]]).reshape(4,4,4,4)
 
         plus = np.kron([1/np.sqrt(2),1/np.sqrt(2)],[1/np.sqrt(2),1/np.sqrt(2)]);
         #altplus = np.kron([1,0],[1,0])  (= (1,0,0,0) )
-        one =  np.asarray([1.,0,0,1]);  
+        #one =  np.asarray([1.,0,0,1]);  
 
         Wbottom = ncon((plus, WWfold), ([1],[-1,-2,-3,1])).reshape(4,4,4,1)
-        Wtop = ncon((one, WWfold), ([1],[-1,-2,1,-3])).reshape(4,4,1,4)
+        Wtop = ncon((op, WWfold), ([1],[-1,-2,1,-3])).reshape(4,4,1,4)
 
         wMPO = [WWfold]*LL
         wMPO[0] = Wbottom
@@ -125,6 +130,7 @@ def buildRotFoldMPO(Tmax: float, dt: float, gz: float = 0.2, rules: dict = {"mmo
 
 
     return rMPO
+
 
 
 

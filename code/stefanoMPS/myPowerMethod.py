@@ -119,7 +119,7 @@ def power_method(MPO: mpo.myMPO, startMPS: any = 0, chiM: int = 50, iters: int =
         Svec = Svec[-1] 
         energies = energies[-1]
 
-    return oPsi, iter, Svec, devec, energies, max_chi_reached 
+    return oPsi, iter, Svec, devec, energies, max_chi_reached, chiM
 
 
 
@@ -128,7 +128,7 @@ def power_method(MPO: mpo.myMPO, startMPS: any = 0, chiM: int = 50, iters: int =
 
 def power_method_untilconverged(MPO: mpo.myMPO, startMPS, chiM: int, HMPO: any = 0, full_ents: bool = True, follow_evol: bool = False, epsConv = 1e-4):
     nSteps = 50
-    oPsi, iter, entropies, devec, energies = power_method(MPO, startMPS, chiM, nSteps, HMPO, full_ents, follow_evol)
+    oPsi, iter, entropies, devec, energies,  max_chi_reached, chiM = power_method(MPO, startMPS, chiM, nSteps, HMPO, full_ents, follow_evol)
     nloop = 0 
     while devec[-1] > epsConv:
         nloop += 1 
@@ -146,4 +146,4 @@ def power_method_untilconverged(MPO: mpo.myMPO, startMPS, chiM: int, HMPO: any =
 
     print(f"Converged after {iter[-1]} steps: deltaS = {devec[-1]}")
 
-    return oPsi, iter, entropies, devec, energies 
+    return oPsi, iter, entropies, devec, energies,  max_chi_reached, chiM
