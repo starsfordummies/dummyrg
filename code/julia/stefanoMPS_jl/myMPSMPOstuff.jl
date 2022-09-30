@@ -48,7 +48,7 @@ end
 function expval_MPO(psi::myMPS, O::Union{myMPO,myMPOcompact})
     psibra = deepcopy(psi)
     psiket = deepcopy(psi)
-    #println("Check norm: ", overlap(psibra,psiket))
+    println("Check norm: ", get_norm_zip(psi))
     apply_MPO!(psiket,O)
     return overlap(psibra,psiket, true)
     
@@ -78,9 +78,11 @@ function power_method(U::myMPO, psi::myMPS, nIters::Int=10, chiMax::Int=50, fast
         if faster
             apply_MPO_threaded!(psi, U)
             svd_sweep!(psi,chiMax)
+            print(psi.chis)
         else
             apply_MPO!(psi, U)
             bring_canonical!(psi,chiMax)
+            print(psi.chis)
         end
         en = expval_MPO(psi, U)
         deltaE = en-enPrev
@@ -88,6 +90,7 @@ function power_method(U::myMPO, psi::myMPS, nIters::Int=10, chiMax::Int=50, fast
         enPrev = en 
     end
     @show deltaE 
+    bring_canonical!(psi,chiMax)
     return psi
 end
 

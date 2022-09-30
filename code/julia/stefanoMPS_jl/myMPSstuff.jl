@@ -76,33 +76,35 @@ function svd_sweep!(inMPS::myMPS{T}, chiMax::Int) where T <: Number
 
     LL = inMPS.LL
     DD = inMPS.DD
-
-    #mps = permutedims.(inMPS.MPS,[(1,3,2)]) 
     
+    #println(inMPS.chis)
+
+    inMPS.MPS .= permutedims.(inMPS.MPS, [(1,3,2)] )
+
     for (jj, Aj) in enumerate(inMPS.MPS)
-        Aj = permutedims(Aj, (1,3,2))
   
         chiL, chiR = size(Aj,1), size(Aj,3)
 
-        F = svd!(reshape(Aj,chiL*DD,chiR))
-        chiT = length(F.S)
+        #F = svd!(reshape(Aj,chiL*DD,chiR))
+        U, S, Vt, chiT = truncate_svd(reshape(Aj,chiL*DD,chiR), chiMax)
+        chiT = length(S)
         inMPS.chis[jj+1] = chiT
    
-        mps[jj] = reshape(Matrix(F.U),(chiL,DD,chiT))
+        inMPS.MPS[jj] = reshape(U,(chiL,DD,chiT))
         #println("Setting A$(jj)")
 
         if jj < LL
-            inMPS.SV[jj+1] = F.S
+            inMPS.SV[jj+1] = S
             #println("setting SV$(jj+1)")
-            @tensor next[vL,ph,vR] := Diagonal(F.S)[vL,a]*F.Vt[a,b]*mps[jj+1][b,ph,vR]
-            mps[jj+1] = next
+            @tensor next[vL,ph,vR] := Diagonal(S)[vL,a]*Vt[a,b]*inMPS.MPS[jj+1][b,ph,vR]
+            inMPS.MPS[jj+1] = next
         end
     end
 
     # Put back the canonical form with re-swapped indices (L form)
-    for jj in eachindex(inMPS.MPS) 
-        inMPS.MPS[jj] = permutedims(inMPS.MPS[jj],[1,3,2])
-    end
+    
+    inMPS.MPS .= permutedims.(inMPS.MPS, [(1,3,2)] )
+    
     inMPS.SVinv .= [inv.(s) for s in inMPS.SV]
 end
 
