@@ -12,6 +12,7 @@ export myMPS, init_MPS, random_mps,
        get_entropies
 
 export myMPO, myMPOcompact,
+       build_Ising_MPO,
        build_Ising_MPO_compact,
        expMinusEpsHIsingMPO,
        expMinusEpsHIsingMPO_compact

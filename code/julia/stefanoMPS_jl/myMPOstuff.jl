@@ -51,6 +51,16 @@ struct myMPO{T <: Number}
     LL::Int
     DD::Int
     chis::Vector{Int}
+
+    function myMPO{T}(Mlist::Vector{Array{T, 4}}) where T <: Number
+        len = length(Mlist)
+        phys_d = size(Mlist[1])[3]
+        chis = [size(mj,1) for mj in Mlist]
+
+        push!(chis, size(last(Mlist),2))
+
+        new(Mlist, len, phys_d, chis)
+    end
 end
 
 struct myMPOcompact{T <: Number}
@@ -58,6 +68,25 @@ struct myMPOcompact{T <: Number}
     LL::Int
     DD::Int
     chis::chisCompactVector
+
+    function myMPOcompact{T}(Mlist::Vector{Array{T, 4}}) where T <: Number
+        # vL vR pU pD 
+        len = length(Mlist)
+        phys_d = size(Mlist[1],3)
+        chis_compact = chisCompactVector(size(mj,2),len+1 )
+        Mlist_compact = MPOCompactVector(Mlist[1],Mlist[2],Mlist[end],len)
+
+        new(Mlist_compact, len, phys_d, chis_compact)
+    end
+
+    function myMPOcompact{T}(len, ww::Tuple{Array{T, 4},Array{T, 4},Array{T, 4}}) where T <: Number
+   
+        phys_d = size(ww[2],3)
+        chis_compact = chisCompactVector(size(ww[1],2),len+1 )
+        Mlist_compact = MPOCompactVector(ww[1], ww[2], ww[3], len)
+    
+        new(Mlist_compact, len, phys_d, chis_compact)
+    end
 end
 
 
@@ -81,37 +110,6 @@ function random_mpo_herm(LL::Int, DD::Int = 2)
 end
 
 
-function init_MPO(Mlist::Vector{Array{T, 4}}) where T <: Number
-    # vL vR pU pD 
-    len = length(Mlist)
-    phys_d = size(Mlist[1])[3]
-    chis = [size(mj,1) for mj in Mlist]
-
-    push!(chis, size(last(Mlist),2))
-
-    return myMPO(Mlist, len, phys_d, chis)
-end
-
-
-
-function init_MPOcompact(Mlist::Vector{Array{T, 4}}) where T <: Number
-    # vL vR pU pD 
-    len = length(Mlist)
-    phys_d = size(Mlist[1],3)
-    chis_compact = chisCompactVector(size(mj,2),len+1 )
-    Mlist_compact = MPOCompactVector(Mlist[1],Mlist[2],Mlist[end],len)
-
-    return myMPOcompact(Mlist_compact, len, phys_d, chis_compact)
-end
-
-function init_MPOcompact(len, ww::Tuple{Array{T, 4},Array{T, 4},Array{T, 4}}) where T <: Number
-   
-    phys_d = size(ww[2],3)
-    chis_compact = chisCompactVector(size(ww[1],2),len+1 )
-    Mlist_compact = MPOCompactVector(ww[1], ww[2], ww[3], len)
-
-    return myMPOcompact(Mlist_compact, len, phys_d, chis_compact)
-end
 
 function IsingMPO(g::Float64, J::Float64 = 1.)
 
@@ -134,13 +132,14 @@ function build_Ising_MPO(LL::Int, g::Float64, J::Float64=1.)
     Wlist = fill(Ws, LL)
     Wlist[1] = Wl
     Wlist[LL] = Wr
-    #@show size(Wl) size(Ws) size(Wr)
-    return init_MPO(Wlist)
+
+    return myMPO{Float64}(Wlist)
 end
 
 function build_Ising_MPO_compact(LL::Int, g::Float64, J::Float64=1.)
 
-    return init_MPOcompact(LL, IsingMPO(g, J))
+    return myMPOcompact{Float64}(LL, IsingMPO(g,J))
+
 end
 
 
@@ -160,6 +159,7 @@ function expMinusEpsHIsingMPO(LL::Int,  g::Float64 = 0.9, J::Float64 = 1., eps::
     vss = sqrt(Diagonal(S)) * Vt
     #ssu = u @ LA.sqrtm(np.diag(s));
     ssu = U * sqrt(Diagonal(S))
+    @show typeof(U)
 
     #temp = ncon([reshape(ssu,(2,2,2)),reshape(vss,(2,2,2))],[[-3,1,-2],[-1,1,-4]]) 
     @tensor temp[i,j,k,l] := reshape(ssu,(2,2,2))[k,a,j]*reshape(vss,(2,2,2))[i,a,l]
@@ -175,7 +175,7 @@ function expMinusEpsHIsingMPO(LL::Int,  g::Float64 = 0.9, J::Float64 = 1., eps::
     Wmpo[1] = reshape(WW[1,1:2,:,:],(1,2,2,2))
     Wmpo[LL] = reshape(WW[1:2,1,:,:],(2,1,2,2))
 
-    return init_MPO(Wmpo)
+    return myMPO{Float64}(Wmpo)
 end
 
 function expMinusEpsHIsingMPO_compact(LL::Int,  g::Float64 = 0.9, J::Float64 = 1., eps::Float64 = 0.1) 
@@ -204,5 +204,5 @@ function expMinusEpsHIsingMPO_compact(LL::Int,  g::Float64 = 0.9, J::Float64 = 1
     Wmpo[1] = reshape(WW[1,1:2,:,:],(1,2,2,2))
     Wmpo[LL] = reshape(WW[1:2,1,:,:],(2,1,2,2))
 
-    return init_MPOcompact(LL, (reshape(WW[1,1:2,:,:],(1,2,2,2)),WW,reshape(WW[1:2,1,:,:],(2,1,2,2))))
+    return myMPOcompact{Float64}(LL, (reshape(WW[1,1:2,:,:],(1,2,2,2)),WW,reshape(WW[1:2,1,:,:],(2,1,2,2))))
 end
