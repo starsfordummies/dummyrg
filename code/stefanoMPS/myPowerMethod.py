@@ -1,9 +1,5 @@
 
-#from __future__ import annotations
-
 import logging
-from lzma import CHECK_ID_MAX
-
 import myMPSstuff as mps
 import myMPOstuff as mpo
 import myMPOMPS as mpomps
@@ -11,9 +7,12 @@ import myMPOMPS as mpomps
 # For pretty progress bars 
 from tqdm import tqdm  
 
+
+## OLD 
 def power_method(MPO: mpo.myMPO, startMPS: any = 0, chiM: int = 50, iters: int = 200, HMPO: any = 0, full_ents: bool = True, follow_evol: bool = False): #-> (myMPS, list, list, list, list):
- 
-    """ Power method. Input variables:
+
+    """ [[[OLD, use power_method_my ]]] 
+    Power method. Input variables:
     - MPO:  the MPO we want to apply (can be exp(-eps*H for TEBD)
     - startMPS:  the starting MPS, if we give a non-mps (eg. 0) it just builds a random MPS to start
     - chiM:  maximum chi we want to reach
@@ -125,14 +124,6 @@ def power_method(MPO: mpo.myMPO, startMPS: any = 0, chiM: int = 50, iters: int =
 
 def power_method_my(MPO: mpo.myMPO, startMPS, pm_params, HMPO = 0 ):
 
- 
-    iter_max = pm_params.get('iter_max',100)
-    chi_max = pm_params.get('chi_max',50) 
-    apply_method = pm_params.get('apply_method', 'apply')
-    full_ents = pm_params.get('full_ents', True)
-    follow_evol = pm_params.get('follow_evol', False)
-
-
     """ Power method. Input variables:
     - MPO:  the MPO we want to apply (can be exp(-eps*H for TEBD)
     - startMPS:  the starting MPS, if we give a non-mps (eg. 0) it just builds a random MPS to start
@@ -150,6 +141,13 @@ def power_method_my(MPO: mpo.myMPO, startMPS, pm_params, HMPO = 0 ):
         max_chi_reached : the maximum bond dimension reached 
 
     """
+
+
+    iter_max = pm_params.get('iter_max',100)
+    chi_max = pm_params.get('chi_max',50) 
+    full_ents = pm_params.get('full_ents', True)
+    follow_evol = pm_params.get('follow_evol', False)
+
    
     # if we don't input a starting MPS, generate a random one
     if not isinstance(startMPS, mps.myMPS):
@@ -249,6 +247,7 @@ def power_method_my(MPO: mpo.myMPO, startMPS, pm_params, HMPO = 0 ):
 
 
 def power_method_untilconverged(MPO: mpo.myMPO, startMPS, chiM: int, HMPO: any = 0, full_ents: bool = True, follow_evol: bool = False, epsConv = 1e-4):
+    """ Keep running until converged - uses OLD power_method """ 
     nSteps = 50
     oPsi, iter, entropies, devec, energies,  max_chi_reached, chiM = power_method(MPO, startMPS, chiM, nSteps, HMPO, full_ents, follow_evol)
     nloop = 0 

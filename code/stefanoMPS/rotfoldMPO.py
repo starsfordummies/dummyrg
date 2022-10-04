@@ -22,6 +22,7 @@ def buildRotFoldMPO_op(op: np.ndarray, Tmax: float, dt: float, gz: float = 0.2, 
     if fold:
         LL = round(Tmax/dt)
     else:
+        # if unfolded we explicitly go forwards and then backwards, so we double the length
         LL = 2*round(Tmax/dt)
   
 
@@ -116,15 +117,15 @@ def buildRotFoldMPO_op(op: np.ndarray, Tmax: float, dt: float, gz: float = 0.2, 
             #print(np.shape(wMPO[jj]))
 
 
-    """    2           0
-         0   1   ->  3   2
-           3           1
-         """
+    """    2            0
+         0   1   />   3   2
+           3            1
+    """
 
     # At the end, rotate
     if LR == 'R':  # default, for getting right leading vec
         rMPO = [ w.transpose(3,2,0,1) for w in wMPO ]
-    elif LR == 'L':
+    elif LR == 'L': # if we want to get the left dominant vec
         rMPO = [ w.transpose(3,2,1,0) for w in wMPO ]
 
 
