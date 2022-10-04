@@ -9,3 +9,5 @@ def callf(ff:callable, x):
 
 print(callf(aa,3))
 print(callf(bb,3))
+
+print(aa.__name__)
