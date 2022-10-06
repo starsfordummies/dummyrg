@@ -1,6 +1,6 @@
 import numpy as np 
 import scipy as sp 
-import ncon 
+from ncon import ncon
 #from tenpy.algorithms.network_contractor import ncon
 import logging
 
