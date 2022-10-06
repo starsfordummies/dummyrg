@@ -1,7 +1,7 @@
 import numpy as np 
 import scipy as sp 
-#from tensornetwork import ncon 
-from tenpy.algorithms.network_contractor import ncon
+import ncon 
+#from tenpy.algorithms.network_contractor import ncon
 import logging
 
 def checkIdMatrix(ainp: np.ndarray, epstol: float = 1e-14, verbose: bool = True) -> bool:
